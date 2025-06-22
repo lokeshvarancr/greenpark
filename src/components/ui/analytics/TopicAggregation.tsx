@@ -18,14 +18,14 @@ const TopicAggregation: React.FC<TopicAggregationProps> = ({ topics }) => (
           <div className="w-full bg-gray-200 rounded-full h-3">
             <div
               className={`h-3 rounded-full ${
-                topic.avgAccuracy < 40
-                  ? "bg-red-400"
-                  : topic.avgAccuracy <= 70
+                topic.avgAccuracy > 75
+                  ? "bg-green-400"
+                  : topic.avgAccuracy > 50
                   ? "bg-yellow-400"
-                  : "bg-green-500"
+                  : "bg-red-400"
               }`}
               style={{ width: `${topic.avgAccuracy}%` }}
-            ></div>
+            />
           </div>
           <span className="text-xs text-gray-500">{topic.totalQuestions} questions</span>
         </li>

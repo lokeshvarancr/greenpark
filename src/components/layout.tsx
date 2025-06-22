@@ -1,9 +1,10 @@
 // src/components/Layout.jsx
+import type { ReactNode } from 'react';
 import Sidebar from './sidebar';
 import Footer from './footer';
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 const Layout = ({ children }: LayoutProps) => (
