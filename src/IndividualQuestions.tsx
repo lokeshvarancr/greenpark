@@ -14,7 +14,7 @@ const TESTS = ["Unit Test 1", "Unit Test 2", "Midterm", "Final"];
 // Types
 // --------------------
 type Option = { option: string; count: number };
-type Question = {
+export type Question = {
 	id: number;
 	number: number;
 	subject: string;
@@ -29,6 +29,12 @@ type Question = {
 	options: Option[];
 	class: string;
 	test: string;
+};
+
+export type TopicAnalytics = {
+  topic: string;
+  avgAccuracy: number;
+  totalQuestions: number;
 };
 
 // --------------------
@@ -125,7 +131,7 @@ function QuestionViewModal({ open, onClose, question }: { open: boolean; onClose
 									<YAxis dataKey="name" type="category" width={80} />
 									<Tooltip />
 									<Bar dataKey="value">
-										{perfData.map((d, idx) => (
+										{perfData.map((d) => (
 											<Cell key={d.name} fill={d.fill} />
 										))}
 									</Bar>
@@ -137,7 +143,7 @@ function QuestionViewModal({ open, onClose, question }: { open: boolean; onClose
 							<ResponsiveContainer width="100%" height={180}>
 								<PieChart>
 									<Pie data={perfData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
-										{perfData.map((entry, idx) => (
+										{perfData.map((entry) => (
 											<Cell key={entry.name} fill={entry.fill} />
 										))}
 									</Pie>

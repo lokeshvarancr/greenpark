@@ -11,7 +11,7 @@
 //   – Dummy dataset (600 students × 6 tests)
 // -----------------------------------------------------------------------------
 
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import BarChart from "@/components/ui/BarChart";
 import DonutChart from "@/components/ui/DonutChart";
 import DashboardCard from "@/components/ui/DashboardCard";

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Home, FileText, Settings, ListChecks, BarChart3, Briefcase } from "lucide-react";
 
 const menu = [

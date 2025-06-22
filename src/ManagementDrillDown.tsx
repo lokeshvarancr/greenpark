@@ -6,7 +6,6 @@ const CLASSES = ["11", "12"];
 const SECTIONS = ["Regular", "Repeaters", "Re-Repeaters"];
 const SUBJECTS = ["Physics", "Chemistry", "Biology"];
 const TOPICS = ["Mechanics", "Thermodynamics", "Genetics", "Organic Chemistry"];
-const TEACHERS = ["Dr. Rao", "Ms. Sharma", "Mr. Singh", "Ms. Patel"];
 
 const PERFORMANCE_DATA = [
   {
@@ -115,6 +114,7 @@ const ManagementDrilldownPage: React.FC = () => {
         valA = a.teacher.toLowerCase();
         valB = b.teacher.toLowerCase();
       }
+      if (valA === undefined || valB === undefined) return 0;
       if (valA < valB) return sortDir === "asc" ? -1 : 1;
       if (valA > valB) return sortDir === "asc" ? 1 : -1;
       return 0;

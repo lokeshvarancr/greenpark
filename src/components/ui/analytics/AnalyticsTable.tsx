@@ -1,11 +1,11 @@
 import React from "react";
-import type { QuestionAnalytics } from "../../../IndividualQuestions";
+import type { Question } from "../../../IndividualQuestions";
 
 interface AnalyticsTableProps {
-  questions: QuestionAnalytics[];
-  sortKey: keyof QuestionAnalytics | null;
+  questions: Question[];
+  sortKey: keyof Question | null;
   sortDir: "asc" | "desc";
-  setSortKey: (key: keyof QuestionAnalytics) => void;
+  setSortKey: (key: keyof Question) => void;
   setSortDir: (dir: "asc" | "desc") => void;
   getAccuracyColor: (accuracy: number) => string;
 }
@@ -23,9 +23,9 @@ const AnalyticsTable: React.FC<AnalyticsTableProps> = ({
     <table className="min-w-full text-sm">
       <thead>
         <tr className="bg-gray-100">
-          <th className="p-2 cursor-pointer" onClick={() => { setSortKey("questionNo"); setSortDir(sortDir === "asc" ? "desc" : "asc"); }}>Q#</th>
-          <th className="p-2 cursor-pointer" onClick={() => { setSortKey("topic"); setSortDir(sortDir === "asc" ? "desc" : "asc"); }}>Topic/Subtopic</th>
-          <th className="p-2 cursor-pointer" onClick={() => { setSortKey("attempted"); setSortDir(sortDir === "asc" ? "desc" : "asc"); }}>Attempted</th>
+          <th className="p-2 cursor-pointer" onClick={() => { setSortKey("number"); setSortDir(sortDir === "asc" ? "desc" : "asc"); }}>Q#</th>
+          <th className="p-2 cursor-pointer" onClick={() => { setSortKey("topic"); setSortDir(sortDir === "asc" ? "desc" : "asc"); }}>Topic</th>
+          <th className="p-2 cursor-pointer" onClick={() => { setSortKey("attempts"); setSortDir(sortDir === "asc" ? "desc" : "asc"); }}>Attempted</th>
           <th className="p-2">Correct</th>
           <th className="p-2">Incorrect</th>
           <th className="p-2 cursor-pointer" onClick={() => { setSortKey("accuracy"); setSortDir(sortDir === "asc" ? "desc" : "asc"); }}>Accuracy %</th>
@@ -33,18 +33,17 @@ const AnalyticsTable: React.FC<AnalyticsTableProps> = ({
       </thead>
       <tbody>
         {questions.map(q => (
-          <tr key={q.questionNo} className={`transition-colors ${getAccuracyColor(q.accuracy)}`}>
-            <td className="p-2 font-semibold">{q.questionNo}</td>
+          <tr key={q.number} className={`transition-colors ${getAccuracyColor(q.accuracy)}`}>
+            <td className="p-2 font-semibold">{q.number}</td>
             <td className="p-2">
               <span className="font-medium">{q.topic}</span>
-              <span className="text-xs text-gray-500 ml-1">({q.subtopic})</span>
             </td>
-            <td className="p-2">{q.attempted}</td>
+            <td className="p-2">{q.attempts}</td>
             <td className="p-2 relative group">
               {q.correct}
               <span className="ml-1 text-gray-400 cursor-help group-hover:underline relative">
                 <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
-                  {q.correct} of {q.attempted} students got this right
+                  {q.correct} of {q.attempts} students got this right
                 </span>
                 ℹ️
               </span>

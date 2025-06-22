@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Download, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 
 // Dummy Data
 const TESTS = ["Unit Test 1", "Unit Test 2", "Midterm", "Final"];
