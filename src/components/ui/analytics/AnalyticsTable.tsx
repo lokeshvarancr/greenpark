@@ -3,7 +3,6 @@ import type { Question } from "../../../IndividualQuestions";
 
 interface AnalyticsTableProps {
   questions: Question[];
-  sortKey: keyof Question | null;
   sortDir: "asc" | "desc";
   setSortKey: (key: keyof Question) => void;
   setSortDir: (dir: "asc" | "desc") => void;
@@ -12,7 +11,6 @@ interface AnalyticsTableProps {
 
 const AnalyticsTable: React.FC<AnalyticsTableProps> = ({
   questions,
-  sortKey,
   sortDir,
   setSortKey,
   setSortDir,
