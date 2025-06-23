@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Home, FileText, Settings, ListChecks, BarChart3, Briefcase } from "lucide-react";
 
 const menu = [
-	{ label: "Dashboard", icon: <Home className="w-5 h-5" />, href: "#" },
+	{ label: "Home", icon: <Home className="w-5 h-5" />, href: "/" },
 	{ label: "Individual Questions", icon: <ListChecks className="w-5 h-5" />, href: "/individual-questions" },
 	{ label: "Performance", icon: <BarChart3 className="w-5 h-5" />, href: "/performance" },
 	{ label: "Management Drilldown", icon: <Briefcase className="w-5 h-5" />, href: "/management-drilldown" },
