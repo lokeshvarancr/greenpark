@@ -3,10 +3,10 @@ import { Home, FileText, Settings, ListChecks, BarChart3, Briefcase } from "luci
 
 const menu = [
 	{ label: "Dashboard", icon: <Home className="w-5 h-5" />, href: "#" },
-	{ label: "Reports", icon: <FileText className="w-5 h-5" />, href: "#" },
 	{ label: "Individual Questions", icon: <ListChecks className="w-5 h-5" />, href: "/individual-questions" },
 	{ label: "Performance", icon: <BarChart3 className="w-5 h-5" />, href: "/performance" },
 	{ label: "Management Drilldown", icon: <Briefcase className="w-5 h-5" />, href: "/management-drilldown" },
+	{ label: "Reports", icon: <FileText className="w-5 h-5" />, href: "#" },
 	{ label: "Settings", icon: <Settings className="w-5 h-5" />, href: "#" },
 ];
 
