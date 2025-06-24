@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Download, FileText, ChevronDown, Eye, X } from "lucide-react";
+import { Download, FileText, Eye, X, ChevronDown } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 // --------------------
@@ -281,33 +281,33 @@ const IndividualQuestions: React.FC<{ studentResponses?: StudentResponse[] }> = 
 				<div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
 					{/* Class Dropdown */}
 					<div className="relative">
-						<select className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
+						<select className="appearance-none border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
 							{CLASSES.map(cls => <option key={cls} value={cls}>{cls}</option>)}
 						</select>
-						<ChevronDown className="absolute right-2 top-2 w-4 h-4 pointer-events-none text-gray-400" />
+						<ChevronDown className="pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
 					</div>
 					{/* Exam Type Dropdown */}
 					<div className="relative">
-						<select className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedExamType} onChange={e => setSelectedExamType(e.target.value)}>
+						<select className="appearance-none border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedExamType} onChange={e => setSelectedExamType(e.target.value)}>
 							<option value="">All Exams</option>
 							{EXAM_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
 						</select>
-						<ChevronDown className="absolute right-2 top-2 w-4 h-4 pointer-events-none text-gray-400" />
+						<ChevronDown className="pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
 					</div>
 					{/* Test Dropdown */}
 					<div className="relative">
-						<select className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedTest} onChange={e => setSelectedTest(e.target.value)}>
+						<select className="appearance-none border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedTest} onChange={e => setSelectedTest(e.target.value)}>
 							{TESTS.map(test => <option key={test} value={test}>{test}</option>)}
 						</select>
-						<ChevronDown className="absolute right-2 top-2 w-4 h-4 pointer-events-none text-gray-400" />
+						<ChevronDown className="pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
 					</div>
 					{/* Subject Dropdown */}
 					<div className="relative">
-						<select className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)}>
+						<select className="appearance-none border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)}>
 							<option value="">All Subjects</option>
 							{NEET_SUBJECTS.map(sub => <option key={sub} value={sub}>{sub}</option>)}
 						</select>
-						<ChevronDown className="absolute right-2 top-2 w-4 h-4 pointer-events-none text-gray-400" />
+						<ChevronDown className="pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
 					</div>
 				</div>
 				{/* Download Buttons */}
