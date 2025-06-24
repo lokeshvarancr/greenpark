@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Home, ListChecks, BarChart3, Briefcase } from "lucide-react";
+import { Home, ListChecks, BarChart3 } from "lucide-react";
 import Logo from "../assets/Logo_Inzighted.svg";
 
 const menu = [

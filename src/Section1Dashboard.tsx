@@ -12,7 +12,6 @@
 // -----------------------------------------------------------------------------
 
 import { useMemo, useState } from "react";
-import DonutChart from "@/components/ui/DonutChart";
 import DashboardCard from "@/components/ui/DashboardCard";
 import FilterRow from "@/components/ui/FilterRow";
 import { faker } from "@faker-js/faker";
@@ -172,15 +171,6 @@ export default function Section1Dashboard() {
       readiness,
     };
   }, [scoped]);
-
-  /* ----------------------------- Top‑10 Rank ----------------------------- */
-  const rank10 = useMemo(
-    () => [...kpi.latestArr]
-      .sort((a, b) => b.projected - a.projected)
-      .slice(0, 10)
-      .map((s, idx) => ({ rank: idx + 1, name: s.studentName, class: s.class, score: s.projected })),
-    [kpi.latestArr],
-  );
 
   // --- NEET Readiness Dropdown State ---
   const classOptions = ["Overall", ...new Set(DATASET.map((d) => d.class))];
@@ -460,8 +450,8 @@ Avg Score: ${d.avg}`}
           <th className="py-1 text-blue-500">Class</th>
           <th className="py-1 text-blue-500">Score</th>
           {/* Dynamically render Test 1 to Test 5 headings */}
-          {sortedTestIds.map((tid, idx) => (
-            <th key={tid} className="py-1 text-blue-500">Test {idx + 1}</th>
+          {sortedTestIds.map((tid) => (
+            <th key={tid} className="py-1 text-blue-500">Test</th>
           ))}
           <th className="py-1 text-blue-500">Rank Movement</th>
         </tr>

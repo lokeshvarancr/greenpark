@@ -30,10 +30,8 @@ const STUDENTS: Student[] = [
 
 const HighLowPerformers: React.FC = () => {
   // Performance Overview filters
-  const [perfTest, setPerfTest] = useState<string>("");
   const [perfSubject, setPerfSubject] = useState<string>("");
   const [perfSection, setPerfSection] = useState<string>("");
-  const [perfLimit, setPerfLimit] = useState<number>(20);
   // Modal state (unused for this dashboard)
   // Date range and pagination
   const [dateRange, setDateRange] = useState({
@@ -67,8 +65,6 @@ const HighLowPerformers: React.FC = () => {
 
   // Attempt Rate vs Accuracy by Test (X-axis: TESTS)
   const testMetrics = TESTS.map(test => {
-    const testStudents = filteredStudents.filter(s => s.subject === perfSubject || !perfSubject).filter(s => s.subject && test);
-    // For demo, just use all filtered students (since no test info in dummy data)
     return {
       test,
       attempt: avgAttempt === "-" ? 0 : Number(avgAttempt),
@@ -248,9 +244,8 @@ const HighLowPerformers: React.FC = () => {
 // HISTOGRAM COMPONENT
 const HistogramChart: React.FC<{ students: Student[]; subject: string }> = ({ students, subject }) => {
   // Determine score range and buckets
-  let maxScore = 720, bucketSize = 60, buckets = 12;
+  let bucketSize = 60, buckets = 12;
   if (subject && subject !== "") {
-    maxScore = 180;
     bucketSize = 30;
     buckets = 6;
   }
