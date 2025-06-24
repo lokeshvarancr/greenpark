@@ -1,19 +1,21 @@
 import { useState } from "react";
+import { NavLink } from "react-router-dom";
 import { Home, FileText, Settings, ListChecks, BarChart3, Briefcase } from "lucide-react";
+import Logo from "../assets/Logo_Inzighted.svg";
 
 const menu = [
-	{ label: "Home", icon: <Home className="w-5 h-5" />, href: "/" },
-	{ label: "Individual Questions", icon: <ListChecks className="w-5 h-5" />, href: "/individual-questions" },
-	{ label: "Performance", icon: <BarChart3 className="w-5 h-5" />, href: "/performance" },
-	{ label: "Management Drilldown", icon: <Briefcase className="w-5 h-5" />, href: "/management-drilldown" },
-	{ label: "Reports", icon: <FileText className="w-5 h-5" />, href: "#" },
-	{ label: "Settings", icon: <Settings className="w-5 h-5" />, href: "#" },
+	{ label: "Dashboard", icon: <Home className="w-5 h-5" />, href: "/" },
+	{ label: "Question Insights", icon: <ListChecks className="w-5 h-5" />, href: "/individual-questions" },
+	{ label: "Student Performance", icon: <BarChart3 className="w-5 h-5" />, href: "/performance" },
+	{ label: "Class & Batch Trends", icon: <Briefcase className="w-5 h-5" />, href: "/management-drilldown" },
+	// { label: "Downloadable Reports", icon: <FileText className="w-5 h-5" />, href: "#" },
+	// { label: "System Settings", icon: <Settings className="w-5 h-5" />, href: "#" },
 ];
 
 const PROFILE = {
-	name: "John Doe",
+	name: "Aaru Mugam",
 	role: "Admin",
-	email: "john.doe@greenpark.com",
+	email: "aarumugamit@greenpark.com",
 	phone: "+91 98765 43210",
 	school: "Greenpark International School",
 	avatar: "https://randomuser.me/api/portraits/men/32.jpg",
@@ -45,25 +47,28 @@ function ProfileModal({ open, onClose }: { open: boolean; onClose: () => void })
 
 export default function Sidebar() {
 	const [profileOpen, setProfileOpen] = useState(false);
-	// For demo, Dashboard is active
-	const active = "Dashboard";
 	return (
 		<aside className="fixed top-0 left-0 h-screen w-64 bg-white shadow-lg rounded-tr-2xl rounded-br-2xl p-6 flex flex-col justify-between z-30">
 			<div>
-				<h1 className="text-2xl font-bold text-blue-600 mb-8">InzightEd</h1>
+				{/* Brand Logo */}
+				<NavLink to="/">
+					<img src={Logo} alt="InzightEd Logo" className="w-40 mb-8 mx-auto" />
+				</NavLink>
 				<nav className="flex flex-col gap-y-4 text-gray-700">
 					{menu.map((item) => (
-						<a
+						<NavLink
 							key={item.label}
-							href={item.href}
-							className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-150 hover:bg-blue-50 hover:text-blue-600 ${
-								active === item.label
-									? "bg-blue-50 text-blue-600 font-semibold"
-									: ""
-							}`}
+							to={item.href}
+							className={({ isActive }) =>
+								`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-150 ${
+									isActive
+										? "bg-blue-100 text-blue-700 font-semibold"
+										: "text-gray-700 hover:bg-gray-100"
+								}
+								`}
 						>
 							{item.icon} {item.label}
-						</a>
+						</NavLink>
 					))}
 				</nav>
 			</div>

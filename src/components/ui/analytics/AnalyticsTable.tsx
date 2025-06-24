@@ -22,7 +22,6 @@ const AnalyticsTable: React.FC<AnalyticsTableProps> = ({
       <thead>
         <tr className="bg-gray-100">
           <th className="p-2 cursor-pointer" onClick={() => { setSortKey("number"); setSortDir(sortDir === "asc" ? "desc" : "asc"); }}>Q#</th>
-          <th className="p-2 cursor-pointer" onClick={() => { setSortKey("topic"); setSortDir(sortDir === "asc" ? "desc" : "asc"); }}>Topic</th>
           <th className="p-2 cursor-pointer" onClick={() => { setSortKey("attempts"); setSortDir(sortDir === "asc" ? "desc" : "asc"); }}>Attempted</th>
           <th className="p-2">Correct</th>
           <th className="p-2">Incorrect</th>
@@ -33,9 +32,6 @@ const AnalyticsTable: React.FC<AnalyticsTableProps> = ({
         {questions.map(q => (
           <tr key={q.number} className={`transition-colors ${getAccuracyColor(q.accuracy)}`}>
             <td className="p-2 font-semibold">{q.number}</td>
-            <td className="p-2">
-              <span className="font-medium">{q.topic}</span>
-            </td>
             <td className="p-2">{q.attempts}</td>
             <td className="p-2 relative group">
               {q.correct}

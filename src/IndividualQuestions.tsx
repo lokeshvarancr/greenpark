@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Download, FileText, ChevronDown, Eye, X } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 // --------------------
 // NEET Topics & Subjects
@@ -9,6 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieCha
 const NEET_SUBJECTS = ["Physics", "Chemistry", "Biology"];
 const CLASSES = ["Overall Class", "11A", "11B", "11C", "11D", "11E"];
 const TESTS = ["Unit Test 1", "Unit Test 2", "Midterm", "Final"];
+const EXAM_TYPES = ["Weekly", "Cumulative", "Grant"];
 
 // --------------------
 // Types
@@ -18,7 +19,6 @@ export type Question = {
 	id: number;
 	number: number;
 	subject: string;
-	topic: string;
 	text: string;
 	attempts: number;
 	correct: number;
@@ -29,6 +29,14 @@ export type Question = {
 	options: Option[];
 	class: string;
 	test: string;
+};
+
+type StudentResponse = {
+  studentId: string;
+  subject: string;
+  questionNo: number;
+  selectedOption: string;
+  isCorrect: boolean;
 };
 
 export type TopicAnalytics = {
@@ -43,18 +51,11 @@ export type TopicAnalytics = {
 function getRandom<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 const QUESTIONS: Question[] = Array.from({ length: 180 }, (_, i) => {
 	const subject = getRandom(NEET_SUBJECTS);
-	let topic = "";
-	if (subject === "Physics") topic = getRandom(["Mechanics", "Thermodynamics", "Optics", "Electrodynamics", "Modern Physics"]);
-	if (subject === "Chemistry") topic = getRandom(["Physical Chemistry", "Organic Chemistry", "Inorganic Chemistry"]);
-	if (subject === "Biology") topic = getRandom([
-		"Diversity in Living World", "Structural Organisation in Animals and Plants", "Cell Structure and Function", "Plant Physiology", "Human Physiology", "Reproduction", "Genetics and Evolution", "Biology and Human Welfare", "Biotechnology", "Ecology and Environment"
-	]);
 	return {
 		id: i + 1,
 		number: i + 1,
 		subject,
-		topic,
-		text: `Sample NEET Question ${i + 1} (${subject} - ${topic})?`,
+		text: `Sample NEET Question ${i + 1} (${subject})?`,
 		attempts: Math.floor(Math.random() * 50) + 10,
 		correct: Math.floor(Math.random() * 30),
 		incorrect: Math.floor(Math.random() * 20),
@@ -86,88 +87,178 @@ function getAccuracyBadge(accuracy: number) {
 // --------------------
 // View Modal
 // --------------------
-function QuestionViewModal({ open, onClose, question }: { open: boolean; onClose: () => void; question: Question | null }) {
-	if (!open || !question) return null;
-	const perfData = [
-		{ name: "Correct", value: question.correct, fill: "#22c55e" },
-		{ name: "Incorrect", value: question.incorrect, fill: "#ef4444" },
-		{ name: "Unattempted", value: Math.max(0, question.attempts - question.correct - question.incorrect), fill: "#a3a3a3" },
-	];
-	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-			<div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6 relative animate-fadeIn overflow-x-auto">
-				<button className="absolute top-2 right-2 text-gray-400 hover:text-gray-600" onClick={onClose}>
-					<X className="w-5 h-5" />
-				</button>
-				<div className="flex flex-col gap-4 min-w-[700px]">
-					<div className="flex gap-4 items-center">
-						<span className="font-bold text-lg">Q{question.number}:</span>
-						<span className="text-base font-medium whitespace-nowrap overflow-x-auto max-w-[600px]">{question.text}</span>
-					</div>
-					<div className="flex gap-4 items-center">
-						<span className="font-semibold">Options:</span>
-						<div className="flex gap-2">
-							{question.options.map((opt) => (
-								<span key={opt.option} className="inline-block bg-gray-100 rounded px-2 py-1 text-xs font-mono border border-gray-200">{opt.option}</span>
-							))}
-						</div>
-						<span className="ml-4 font-semibold text-green-700">Correct: {question.correctAnswer}</span>
-					</div>
-					<div className="flex gap-6 items-center mt-2">
-						<span className="text-sm">Attempts: <b>{question.attempts}</b></span>
-						<span className="text-sm">Correct: <b>{question.correct}</b></span>
-						<span className="text-sm">Incorrect: <b>{question.incorrect}</b></span>
-						<span className="text-sm">Accuracy: {getAccuracyBadge(question.accuracy)}</span>
-						<span className="text-sm">Difficulty: <b>{question.difficulty}</b></span>
-						<span className="text-sm">Subject: <b>{question.subject}</b></span>
-						<span className="text-sm">Topic: <b>{question.topic}</b></span>
-					</div>
-					<div className="w-full mt-4 flex flex-col md:flex-row gap-6 items-center">
-						<div className="flex-1">
-							<span className="font-semibold">Performance:</span>
-							<ResponsiveContainer width="100%" height={180}>
-								<BarChart data={perfData} layout="vertical" margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
-									<XAxis type="number" hide />
-									<YAxis dataKey="name" type="category" width={80} />
-									<Tooltip />
-									<Bar dataKey="value">
-										{perfData.map((d) => (
-											<Cell key={d.name} fill={d.fill} />
-										))}
-									</Bar>
-								</BarChart>
-							</ResponsiveContainer>
-						</div>
-						<div className="flex-1">
-							<span className="font-semibold">Accuracy Pie:</span>
-							<ResponsiveContainer width="100%" height={180}>
-								<PieChart>
-									<Pie data={perfData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
-										{perfData.map((entry) => (
-											<Cell key={entry.name} fill={entry.fill} />
-										))}
-									</Pie>
-									<Legend />
-									<Tooltip />
-								</PieChart>
-							</ResponsiveContainer>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	);
+// Enhanced modal with analytics and improved UI/UX
+
+function QuestionViewModal({
+  open,
+  onClose,
+  question,
+  studentResponses = [],
+}: {
+  open: boolean;
+  onClose: () => void;
+  question: Question | null;
+  studentResponses?: StudentResponse[];
+}) {
+  if (!open || !question) return null;
+
+  // Simulate 2000 attempts for analytics
+  const TOTAL_ATTEMPTS = 2000;
+  // Option-wise counts (simulate or use real data if available)
+  const responses = useMemo(
+    () =>
+      studentResponses.filter(
+        (r) => r.questionNo === question.number && r.subject === question.subject
+      ),
+    [studentResponses, question]
+  );
+
+  // If real data is available, use it; otherwise, simulate
+  let optionCounts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
+  if (responses.length >= TOTAL_ATTEMPTS) {
+    responses.forEach((r) => {
+      if (optionCounts[r.selectedOption] !== undefined) optionCounts[r.selectedOption]++;
+    });
+  } else {
+    // Simulate a distribution for demo if not enough data
+    const base = [550, 720, 480, 250];
+    ["A", "B", "C", "D"].forEach((opt, i) => (optionCounts[opt] = base[i]));
+  }
+
+  // Most common incorrect option
+  const correctOpt = question.correctAnswer;
+  const incorrectCounts = { ...optionCounts };
+  delete incorrectCounts[correctOpt];
+  const mostCommonIncorrect = Object.entries(incorrectCounts).reduce((a, b) => (a[1] > b[1] ? a : b))[0];
+
+  // Stats
+  const correctCount = optionCounts[correctOpt];
+  const incorrectCount = TOTAL_ATTEMPTS - correctCount;
+  const correctPct = Math.round((correctCount / TOTAL_ATTEMPTS) * 100);
+  const incorrectPct = 100 - correctPct;
+
+  // Chart data for options
+  const chartData = ["A", "B", "C", "D"].map((opt) => ({
+    option: opt,
+    count: optionCounts[opt] ?? 0,
+    isCorrect: opt === correctOpt,
+    isMostWrong: opt === mostCommonIncorrect,
+    percent: Math.round(((optionCounts[opt] ?? 0) / TOTAL_ATTEMPTS) * 100),
+  }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl min-h-[600px] p-10 relative animate-fadeIn overflow-x-auto flex flex-col gap-8">
+        <button
+          className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"
+          onClick={onClose}
+        >
+          <X className="w-7 h-7" />
+        </button>
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-6">
+          <div className="flex flex-col gap-2">
+            <span className="font-bold text-3xl text-gray-900 leading-tight">
+              Q{question.number}
+            </span>
+            <span className="text-lg text-gray-700 font-medium">{question.text}</span>
+            <div className="flex gap-6 mt-2 text-base text-gray-600">
+              <span><span className="font-semibold">Subject:</span> {question.subject}</span>
+              <span><span className="font-semibold">Total Attempts:</span> {TOTAL_ATTEMPTS}</span>
+            </div>
+          </div>
+        </div>
+        {/* Chart Section */}
+        <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
+          <div className="flex-1 min-w-[320px]">
+            <span className="font-semibold text-gray-700 mb-2 block">Option-wise Response Distribution</span>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={chartData} margin={{ left: 20, right: 20, top: 20, bottom: 20 }}>
+                <XAxis dataKey="option" label={{ value: "Option", position: "insideBottom", offset: -5 }} />
+                <YAxis allowDecimals={false} label={{ value: "Responses", angle: -90, position: "insideLeft" }} />
+                <Tooltip
+                  formatter={(value: number, name: string, props: any) =>
+                    [
+                      `${value} students (${props.payload.percent}%)`,
+                      props.payload.isCorrect
+                        ? "Correct Option"
+                        : props.payload.isMostWrong
+                        ? "Most Common Wrong Option"
+                        : "Option",
+                    ]
+                  }
+                />
+                <Bar dataKey="count" label={{ position: "top" }}>
+                  {chartData.map((entry) => (
+                    <Cell
+                      key={entry.option}
+                      fill={
+                        entry.isCorrect
+                          ? "#22c55e"
+                          : entry.isMostWrong
+                          ? "#ef4444"
+                          : "#60a5fa"
+                      }
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="flex gap-6 mt-4 text-sm">
+              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-500 inline-block" /> Correct Option</span>
+              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-500 inline-block" /> Most Common Wrong</span>
+              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-400 inline-block" /> Other Options</span>
+            </div>
+          </div>
+          {/* Analytics Section */}
+          <div className="flex-1 min-w-[320px] flex flex-col gap-4 bg-gray-50 rounded-xl p-6 border shadow-sm">
+            <div className="flex flex-col gap-2">
+              <span className="font-semibold text-gray-700">% Correct</span>
+              <span className="text-3xl font-bold text-green-600">{correctPct}%</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="font-semibold text-gray-700">% Incorrect</span>
+              <span className="text-3xl font-bold text-red-500">{incorrectPct}%</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="font-semibold text-gray-700">Most Common Incorrect Option</span>
+              <span className="text-xl font-bold text-red-600">{mostCommonIncorrect}</span>
+            </div>
+            <div className="flex flex-col gap-2 mt-2">
+              <span className="font-semibold text-gray-700">Option-wise Distribution</span>
+              <div className="flex flex-col gap-1">
+                {chartData.map((opt) => (
+                  <span key={opt.option} className="flex gap-2 items-center">
+                    <span className={`w-3 h-3 rounded inline-block ${
+                      opt.isCorrect
+                        ? "bg-green-500"
+                        : opt.isMostWrong
+                        ? "bg-red-500"
+                        : "bg-blue-400"
+                    }`} />
+                    <span className="font-mono font-bold">{opt.option}</span>
+                    <span className="ml-2">{opt.count} students</span>
+                    <span className="ml-2 text-xs text-gray-500">({opt.percent}%)</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // --------------------
 // Main Component
 // --------------------
-const IndividualQuestions: React.FC = () => {
+const IndividualQuestions: React.FC<{ studentResponses?: StudentResponse[] }> = ({ studentResponses = [] }) => {
 	// Top bar filters
 	const [selectedClass, setSelectedClass] = useState<string>(CLASSES[0]);
 	const [selectedTest, setSelectedTest] = useState<string>("");
 	const [selectedSubject, setSelectedSubject] = useState<string>("");
-	const [selectedTopic, setSelectedTopic] = useState<string>("");
+	const [selectedExamType, setSelectedExamType] = useState<string>(EXAM_TYPES[0]);
 	const [viewModalQuestion, setViewModalQuestion] = useState<Question | null>(null);
 
 	// Dummy handlers for download
@@ -175,26 +266,14 @@ const IndividualQuestions: React.FC = () => {
 		alert(`Download as ${type} (dummy)`);
 	};
 
-	// Unique topics from data (filtered by class/test/subject)
-	const dynamicTopics = useMemo(() => {
-		return Array.from(new Set(
-			QUESTIONS.filter(q =>
-				(selectedClass === "Overall Class" || q.class === selectedClass) &&
-				(!selectedTest || q.test === selectedTest) &&
-				(!selectedSubject || q.subject === selectedSubject)
-			).map(q => q.topic)
-		)).sort();
-	}, [selectedClass, selectedTest, selectedSubject]);
-
 	// Filtered questions
 	const questionsToShow = useMemo(() => {
 		return QUESTIONS.filter(q =>
 			(selectedClass === "Overall Class" || q.class === selectedClass) &&
 			(!selectedTest || q.test === selectedTest) &&
-			(!selectedSubject || q.subject === selectedSubject) &&
-			(!selectedTopic || q.topic === selectedTopic)
+			(!selectedSubject || q.subject === selectedSubject)
 		);
-	}, [selectedClass, selectedTest, selectedSubject, selectedTopic]);
+	}, [selectedClass, selectedTest, selectedSubject]);
 
 	return (
 		<div className="min-h-screen bg-gray-50 pb-8">
@@ -208,10 +287,17 @@ const IndividualQuestions: React.FC = () => {
 						</select>
 						<ChevronDown className="absolute right-2 top-2 w-4 h-4 pointer-events-none text-gray-400" />
 					</div>
+					{/* Exam Type Dropdown */}
+					<div className="relative">
+						<select className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedExamType} onChange={e => setSelectedExamType(e.target.value)}>
+							<option value="">All Exams</option>
+							{EXAM_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
+						</select>
+						<ChevronDown className="absolute right-2 top-2 w-4 h-4 pointer-events-none text-gray-400" />
+					</div>
 					{/* Test Dropdown */}
 					<div className="relative">
 						<select className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedTest} onChange={e => setSelectedTest(e.target.value)}>
-							<option value="">All Tests</option>
 							{TESTS.map(test => <option key={test} value={test}>{test}</option>)}
 						</select>
 						<ChevronDown className="absolute right-2 top-2 w-4 h-4 pointer-events-none text-gray-400" />
@@ -221,14 +307,6 @@ const IndividualQuestions: React.FC = () => {
 						<select className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)}>
 							<option value="">All Subjects</option>
 							{NEET_SUBJECTS.map(sub => <option key={sub} value={sub}>{sub}</option>)}
-						</select>
-						<ChevronDown className="absolute right-2 top-2 w-4 h-4 pointer-events-none text-gray-400" />
-					</div>
-					{/* Topic Dropdown */}
-					<div className="relative">
-						<select className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedTopic} onChange={e => setSelectedTopic(e.target.value)}>
-							<option value="">All Topics</option>
-							{dynamicTopics.map(t => <option key={t} value={t}>{t}</option>)}
 						</select>
 						<ChevronDown className="absolute right-2 top-2 w-4 h-4 pointer-events-none text-gray-400" />
 					</div>
@@ -250,12 +328,10 @@ const IndividualQuestions: React.FC = () => {
 								<tr className="bg-gray-100">
 									<th className="py-2 px-2 text-left">Q#</th>
 									<th className="py-2 px-2 text-left">Subject</th>
-									<th className="py-2 px-2 text-left">Topic</th>
 									<th className="py-2 px-2 text-center">Attempts</th>
 									<th className="py-2 px-2 text-center">Correct</th>
 									<th className="py-2 px-2 text-center">Incorrect</th>
 									<th className="py-2 px-2 text-center">Accuracy</th>
-									<th className="py-2 px-2 text-center">Difficulty</th>
 									<th className="py-2 px-2 text-center">View</th>
 								</tr>
 							</thead>
@@ -264,12 +340,10 @@ const IndividualQuestions: React.FC = () => {
 									<tr key={q.id} className="border-b hover:bg-blue-50 transition">
 										<td className="py-2 px-2">{q.number}</td>
 										<td className="py-2 px-2">{q.subject}</td>
-										<td className="py-2 px-2">{q.topic}</td>
 										<td className="py-2 px-2 text-center">{q.attempts}</td>
 										<td className="py-2 px-2 text-center">{q.correct}</td>
 										<td className="py-2 px-2 text-center">{q.incorrect}</td>
 										<td className="py-2 px-2 text-center">{getAccuracyBadge(q.accuracy)}</td>
-										<td className="py-2 px-2 text-center">{q.difficulty}</td>
 										<td className="py-2 px-2 text-center">
 											<button className="text-blue-600 hover:underline flex items-center gap-1" onClick={() => setViewModalQuestion(q)}>
 												<Eye className="w-4 h-4" /> View
@@ -284,7 +358,12 @@ const IndividualQuestions: React.FC = () => {
 			</div>
 
 			{/* View Modal */}
-			<QuestionViewModal open={!!viewModalQuestion} onClose={() => setViewModalQuestion(null)} question={viewModalQuestion} />
+			<QuestionViewModal
+				open={!!viewModalQuestion}
+				onClose={() => setViewModalQuestion(null)}
+				question={viewModalQuestion}
+				studentResponses={studentResponses}
+			/>
 		</div>
 	);
 };

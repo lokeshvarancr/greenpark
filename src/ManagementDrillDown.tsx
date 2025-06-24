@@ -5,12 +5,10 @@ const TESTS = ["Unit Test 1", "Unit Test 2", "Midterm", "Final"];
 const CLASSES = ["11", "12"];
 const SECTIONS = ["Regular", "Repeaters", "Re-Repeaters"];
 const SUBJECTS = ["Physics", "Chemistry", "Biology"];
-const TOPICS = ["Mechanics", "Thermodynamics", "Genetics", "Organic Chemistry"];
 
 const PERFORMANCE_DATA = [
   {
     subject: "Physics",
-    topic: "Mechanics",
     avgScore: 48,
     weaknessIndex: 0.8,
     teacher: "Dr. Rao",
@@ -25,7 +23,6 @@ const PERFORMANCE_DATA = [
   },
   {
     subject: "Chemistry",
-    topic: "Organic Chemistry",
     avgScore: 77,
     weaknessIndex: 0.2,
     teacher: "Ms. Sharma",
@@ -40,7 +37,6 @@ const PERFORMANCE_DATA = [
   },
   {
     subject: "Biology",
-    topic: "Genetics",
     avgScore: 62,
     weaknessIndex: 0.5,
     teacher: "Mr. Singh",
@@ -55,7 +51,6 @@ const PERFORMANCE_DATA = [
   },
   {
     subject: "Physics",
-    topic: "Thermodynamics",
     avgScore: 82,
     weaknessIndex: 0.1,
     teacher: "Ms. Patel",
@@ -88,7 +83,6 @@ const ManagementDrilldownPage: React.FC = () => {
   const [className, setClassName] = useState("");
   const [section, setSection] = useState("");
   const [subject, setSubject] = useState("");
-  const [topic, setTopic] = useState("");
   const [sortKey, setSortKey] = useState("avgScore");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [modalOpen, setModalOpen] = useState(false);
@@ -101,7 +95,6 @@ const ManagementDrilldownPage: React.FC = () => {
     if (className) data = data.filter(d => d.class === className);
     if (section) data = data.filter(d => d.section === section);
     if (subject) data = data.filter(d => d.subject === subject);
-    if (topic) data = data.filter(d => d.topic === topic);
     data.sort((a, b) => {
       let valA, valB;
       if (sortKey === "avgScore") {
@@ -120,7 +113,7 @@ const ManagementDrilldownPage: React.FC = () => {
       return 0;
     });
     return data;
-  }, [test, className, section, subject, topic, sortKey, sortDir]);
+  }, [test, className, section, subject, sortKey, sortDir]);
 
   // Modal handler
   const openModal = (row: any) => {
@@ -162,10 +155,6 @@ const ManagementDrilldownPage: React.FC = () => {
           <option value="">Subject</option>
           {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select className="border rounded px-3 py-2 text-sm" value={topic} onChange={e => setTopic(e.target.value)}>
-          <option value="">Topic</option>
-          {TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
         <button className="ml-auto bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 text-sm">Search</button>
       </div>
 
@@ -182,7 +171,6 @@ const ManagementDrilldownPage: React.FC = () => {
           <thead>
             <tr className="bg-gray-50">
               <th className="py-2 px-2 text-left">Subject</th>
-              <th className="py-2 px-2 text-left">Topic</th>
               <th className="py-2 px-2 text-center cursor-pointer" onClick={() => handleSort("avgScore")}>Avg. Score (%) {sortKey === "avgScore" && (sortDir === "asc" ? "▲" : "▼")}</th>
               <th className="py-2 px-2 text-center cursor-pointer" onClick={() => handleSort("weaknessIndex")}>Weakness Index {sortKey === "weaknessIndex" && (sortDir === "asc" ? "▲" : "▼")}</th>
               <th className="py-2 px-2 text-center cursor-pointer" onClick={() => handleSort("teacher")}>Teacher Assigned {sortKey === "teacher" && (sortDir === "asc" ? "▲" : "▼")}</th>
@@ -193,12 +181,11 @@ const ManagementDrilldownPage: React.FC = () => {
           </thead>
           <tbody>
             {filteredData.length === 0 && (
-              <tr><td colSpan={8} className="text-center text-gray-400 py-4">No data</td></tr>
+              <tr><td colSpan={7} className="text-center text-gray-400 py-4">No data</td></tr>
             )}
             {filteredData.map((row, idx) => (
               <tr key={idx} className="border-b hover:bg-blue-50 transition">
                 <td className="py-2 px-2 font-medium">{row.subject}</td>
-                <td className="py-2 px-2">{row.topic}</td>
                 <td className="py-2 px-2 text-center">
                   <span className={`px-2 py-1 rounded font-semibold text-xs ${getBadgeColor(row.avgScore)}`}>{row.avgScore}%</span>
                 </td>
@@ -224,7 +211,7 @@ const ManagementDrilldownPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-lg p-6 relative animate-fadeIn flex flex-col max-h-[95vh] overflow-y-auto">
             <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-2xl" onClick={closeModal}>×</button>
-            <h2 className="font-bold text-lg mb-2">Drilldown: {modalRow.subject} - {modalRow.topic}</h2>
+            <h2 className="font-bold text-lg mb-2">Drilldown: {modalRow.subject}</h2>
             <div className="mb-3">
               <span className="font-semibold">Teacher:</span> {modalRow.teacher}<br />
               <span className="font-semibold">Section:</span> {modalRow.section}<br />

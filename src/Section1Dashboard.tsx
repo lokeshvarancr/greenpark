@@ -12,7 +12,6 @@
 // -----------------------------------------------------------------------------
 
 import { useMemo, useState } from "react";
-import BarChart from "@/components/ui/BarChart";
 import DonutChart from "@/components/ui/DonutChart";
 import DashboardCard from "@/components/ui/DashboardCard";
 import FilterRow from "@/components/ui/FilterRow";
@@ -217,15 +216,9 @@ export default function Section1Dashboard() {
           <DashboardCard title="Improvement" content={<DonutChart data={Object.entries(kpi.improveBuckets).map(([n, v]) => ({ name: n, value: v }))} colors={{ Improved: "#2563eb", Neutral: "#dbeafe", Degraded: "#60a5fa" }} />} />
         </section>
 
-        {/* Section: Accuracy vs Attempt */}
-        <section className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Accuracy vs Attempt Bucket</h2>
-          <BarChart data={accuracyBars} xKey="label" yKey="accuracy" />
-        </section>
-
         {/* Section: Performers */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DashboardCard title="Top 10 Performers" content={
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <DashboardCard title="Top 10 Performers" className="md:col-span-12" content={
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="text-left border-b border-blue-100">
@@ -242,28 +235,6 @@ export default function Section1Dashboard() {
                     <td className="py-1 text-blue-900">{s.name}</td>
                     <td className="py-1 text-blue-900">{s.class}</td>
                     <td className="py-1 font-medium text-blue-700">{s.score}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          } />
-          <DashboardCard title="Bottom 5 Performers" content={
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="text-left border-b border-blue-100">
-                  <th className="py-1 text-blue-500">Rank</th>
-                  <th className="py-1 text-blue-500">Name</th>
-                  <th className="py-1 text-blue-500">Class</th>
-                  <th className="py-1 text-blue-500">Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rankBottom5.map((s, i) => (
-                  <tr key={s.studentId} className="border-b border-blue-50 hover:bg-blue-50 transition-all duration-200">
-                    <td className="py-1 text-blue-900 font-semibold">{i + 1}</td>
-                    <td className="py-1 text-blue-900">{s.studentName}</td>
-                    <td className="py-1 text-blue-900">{s.class}</td>
-                    <td className="py-1 font-medium text-blue-700">{s.projected}</td>
                   </tr>
                 ))}
               </tbody>

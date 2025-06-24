@@ -17,6 +17,8 @@ type FilterRowProps = {
   subject: string;
   onSubjectChange: (val: string) => void;
   subjects: string[];
+  examType: string;
+  onExamTypeChange: (val: string) => void;
 };
 
 const FilterRow: React.FC<FilterRowProps> = ({
@@ -36,8 +38,10 @@ const FilterRow: React.FC<FilterRowProps> = ({
   subject,
   onSubjectChange,
   subjects,
+  examType,
+  onExamTypeChange,
 }) => (
-  <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+  <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
     {/* Date Range (spans 2 columns on desktop) */}
     <div className="bg-white p-3 rounded-xl shadow-sm h-full flex flex-col justify-between md:col-span-2">
       <label className="text-sm font-semibold text-blue-800 mb-1">Date Range</label>
@@ -85,6 +89,20 @@ const FilterRow: React.FC<FilterRowProps> = ({
         {batches.map((b) => (
           <option key={b} value={b}>{b}</option>
         ))}
+      </select>
+    </div>
+     {/* Exam Type */}
+    <div className="bg-white p-3 rounded-xl shadow-sm h-full flex flex-col justify-between">
+      <label className="text-sm font-semibold text-blue-800 mb-1">Exam Type</label>
+      <select
+        className="w-full px-2 py-1.5 border rounded-md shadow-sm text-sm"
+        value={examType}
+        onChange={e => onExamTypeChange(e.target.value)}
+      >
+        <option value="">All Exam Types</option>
+        <option value="Weekly">Weekly</option>
+        <option value="Cumulative">Cumulative</option>
+        <option value="Grant Test">Grant Test</option>
       </select>
     </div>
     {/* Class */}
