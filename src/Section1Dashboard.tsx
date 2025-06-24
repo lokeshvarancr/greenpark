@@ -289,7 +289,7 @@ export default function Section1Dashboard() {
                 <div className="mt-8">
                   <span className="block text-sm font-semibold text-slate-700 mb-2">Risk Breakdown</span>
                   <div className="flex w-full h-6 rounded-full overflow-hidden shadow border border-slate-100">
-                    {riskBreakdown.map((seg, idx) => (
+                    {riskBreakdown.map((seg) => (
                       <div
                         key={seg.label}
                         style={{ width: `${seg.pct}%`, background: seg.color, transition: 'width 0.4s' }}
