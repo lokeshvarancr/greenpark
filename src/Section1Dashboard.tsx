@@ -183,6 +183,8 @@ export default function Section1Dashboard() {
           subject={filter.subject}
           onSubjectChange={updateFilter("subject")}
           subjects={subjects}
+          examType="NEET"
+          onExamTypeChange={() => {}}
         />
         {/* Section: Summary Cards */}
         <section className="grid grid-cols-1 md:grid-cols-5 gap-4">

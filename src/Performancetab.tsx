@@ -116,9 +116,10 @@ const HighLowPerformers: React.FC = () => {
 
   // Modal state
   const [visualOpen, setVisualOpen] = useState(false);
-  const [visualSubject, setVisualSubject] = useState("");
-  const [visualTest, setVisualTest] = useState("");
-  const [visualStudents, setVisualStudents] = useState<Student[]>([]);
+  // Remove unused state setters
+  const [visualSubject] = useState("");
+  const [visualTest] = useState("");
+  const [visualStudents] = useState<Student[]>([]);
 
   // Filtered lists for Performance Overview
   const highList = useMemo(() => {
