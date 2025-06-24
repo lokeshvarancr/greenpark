@@ -1,11 +1,6 @@
 import React from "react";
-import type { TopicAnalytics } from "../../../IndividualQuestions";
 
-interface TopicAggregationProps {
-  topics: TopicAnalytics[];
-}
-
-const TopicAggregation: React.FC<TopicAggregationProps> = ({ topics }) => (
+const TopicAggregation: React.FC = () => (
   <div className="bg-white rounded-lg shadow p-4">
     <h3 className="font-semibold mb-2">Topic-Level Aggregation</h3>
     <ul className="space-y-4">

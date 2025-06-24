@@ -133,7 +133,6 @@ function QuestionViewModal({
 
   // Stats
   const correctCount = optionCounts[correctOpt];
-  const incorrectCount = TOTAL_ATTEMPTS - correctCount;
   const correctPct = Math.round((correctCount / TOTAL_ATTEMPTS) * 100);
   const incorrectPct = 100 - correctPct;
 
@@ -177,7 +176,7 @@ function QuestionViewModal({
                 <XAxis dataKey="option" label={{ value: "Option", position: "insideBottom", offset: -5 }} />
                 <YAxis allowDecimals={false} label={{ value: "Responses", angle: -90, position: "insideLeft" }} />
                 <Tooltip
-                  formatter={(value: number, name: string, props: any) =>
+                  formatter={(value: number, _name: string, props: any) =>
                     [
                       `${value} students (${props.payload.percent}%)`,
                       props.payload.isCorrect

@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import { Eye } from "lucide-react";
 
 // Dummy Data
 const TESTS = ["Unit Test 1", "Unit Test 2", "Midterm", "Final"];
@@ -56,34 +55,37 @@ function CombinedVisualModal({ open, onClose, subject, test, students }: {
         </div>
         {/* Mid Section: Student Lists */}
         <div className="flex flex-col md:flex-row gap-6 mb-6">
-          <div className="flex-1 min-w-[220px] max-h-64 overflow-y-auto bg-blue-50 rounded-lg p-3">
-            <h3 className="font-semibold text-blue-700 mb-2">High Performers (≥75%)</h3>
-            <ul>
-              {high.length === 0 && <li className="text-center text-gray-400 py-4">No data</li>}
-              {high.map((s, idx) => (
-                <li key={idx} className="flex items-center justify-between border-b py-2">
-                  <span className="font-medium">{s.name}</span>
-                  <span className="text-xs text-gray-500">{s.section}</span>
-                  <span className="text-xs text-gray-600">Score: {s.marks}</span>
-                  <span className="text-xs text-gray-600">Accuracy: {s.accuracy}%</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex-1 min-w-[220px] max-h-64 overflow-y-auto bg-red-50 rounded-lg p-3">
-            <h3 className="font-semibold text-red-700 mb-2">Low Performers (&lt;40%)</h3>
-            <ul>
-              {low.length === 0 && <li className="text-center text-gray-400 py-4">No data</li>}
-              {low.map((s, idx) => (
-                <li key={idx} className="flex items-center justify-between border-b py-2">
-                  <span className="font-medium">{s.name}</span>
-                  <span className="text-xs text-gray-500">{s.section}</span>
-                  <span className="text-xs text-gray-600">Score: {s.marks}</span>
-                  <span className="text-xs text-gray-600">Accuracy: {s.accuracy}%</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* Wrap both columns in a fragment to fix adjacent JSX error */}
+          <>
+            <div className="flex-1 min-w-[220px] max-h-64 overflow-y-auto bg-blue-50 rounded-lg p-3">
+              <h3 className="font-semibold text-blue-700 mb-2">High Performers (≥75%)</h3>
+              <ul>
+                {high.length === 0 && <li className="text-center text-gray-400 py-4">No data</li>}
+                {high.map((s, idx) => (
+                  <li key={idx} className="flex items-center justify-between border-b py-2">
+                    <span className="font-medium">{s.name}</span>
+                    <span className="text-xs text-gray-500">{s.section}</span>
+                    <span className="text-xs text-gray-600">Score: {s.marks}</span>
+                    <span className="text-xs text-gray-600">Accuracy: {s.accuracy}%</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="flex-1 min-w-[220px] max-h-64 overflow-y-auto bg-red-50 rounded-lg p-3">
+              <h3 className="font-semibold text-red-700 mb-2">Low Performers (&lt;40%)</h3>
+              <ul>
+                {low.length === 0 && <li className="text-center text-gray-400 py-4">No data</li>}
+                {low.map((s, idx) => (
+                  <li key={idx} className="flex items-center justify-between border-b py-2">
+                    <span className="font-medium">{s.name}</span>
+                    <span className="text-xs text-gray-500">{s.section}</span>
+                    <span className="text-xs text-gray-600">Score: {s.marks}</span>
+                    <span className="text-xs text-gray-600">Accuracy: {s.accuracy}%</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </>
         </div>
         {/* Bottom Section: Combined Visual */}
         <div className="w-full overflow-x-auto mt-2">
@@ -134,18 +136,6 @@ const HighLowPerformers: React.FC = () => {
     if (perfSection) filtered = filtered.filter(s => s.section === perfSection);
     return filtered.slice(0, perfLimit);
   }, [perfTest, perfSubject, perfSection, perfLimit]);
-
-  // Modal handler
-  const handleVisual = () => {
-    let students = STUDENTS;
-    if (perfTest) students = students.filter(s => s.subject && perfTest ? s.subject : true);
-    if (perfSubject) students = students.filter(s => s.subject === perfSubject);
-    if (perfSection) students = students.filter(s => s.section === perfSection);
-    setVisualSubject(perfSubject);
-    setVisualTest(perfTest);
-    setVisualStudents(students);
-    setVisualOpen(true);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-8">

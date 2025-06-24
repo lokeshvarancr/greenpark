@@ -150,35 +150,12 @@ export default function Section1Dashboard() {
     return { testsTaken, accuracy, topPerformer, riskBuckets, improveBuckets, latestArr };
   }, [scoped]);
 
-  /* --------------------------- Accuracy Buckets ------------------------- */
-  // In accuracyBars, fix buckets type
-  const accuracyBars = useMemo(() => {
-    const buckets: { [key: string]: number[] } = { "<50%": [], "50–75%": [], ">75%": [] };
-    kpi.latestArr.forEach((s) => {
-      const attemptPct = (s.attempted / 180) * 100;
-      const acc = +((s.correct / s.attempted) * 100).toFixed(1);
-      if (attemptPct < 50) buckets["<50%"].push(acc);
-      else if (attemptPct <= 75) buckets["50–75%"].push(acc);
-      else buckets[">75%"].push(acc);
-    });
-    return Object.entries(buckets).map(([label, arr]) => ({
-      label,
-      accuracy: arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0,
-    }));
-  }, [kpi.latestArr]);
-
   /* ----------------------------- Top‑10 Rank ----------------------------- */
   const rank10 = useMemo(
     () => [...kpi.latestArr]
       .sort((a, b) => b.projected - a.projected)
       .slice(0, 10)
       .map((s, idx) => ({ rank: idx + 1, name: s.studentName, class: s.class, score: s.projected })),
-    [kpi.latestArr],
-  );
-  const rankBottom5 = useMemo(
-    () => [...kpi.latestArr]
-      .sort((a, b) => a.projected - b.projected)
-      .slice(0, 5),
     [kpi.latestArr],
   );
 
