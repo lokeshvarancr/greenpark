@@ -3,6 +3,7 @@ import Section1Dashboard from './Section1Dashboard';
 import IndividualQuestions from './IndividualQuestions';
 import Performancetab from './Performancetab';
 import ManagementDrilldownPage from './ManagementDrillDown';
+import PerformanceInsights from './PerformanceInsights';
 import Sidebar from './components/sidebar';
 import Footer from './components/footer';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -19,6 +20,7 @@ function App() {
               <Route path="/individual-questions" element={<IndividualQuestions />} />
               <Route path="/performance" element={<Performancetab />} />
               <Route path="/management-drilldown" element={<ManagementDrilldownPage />} />
+              <Route path="/performance-insights" element={<PerformanceInsights />} />
             </Routes>
           </main>
           <Footer />

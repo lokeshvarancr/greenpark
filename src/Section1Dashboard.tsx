@@ -2,7 +2,7 @@
 // -----------------------------------------------------------------------------
 // * Fully self‑contained; compiles with React + Tailwind + shadcn/ui + Recharts
 // * Implements Section 1 of NEET Evaluation Dashboard with:
-//   – Filters (Institution ▸ Batch ▸ Class ▸ Subject ▸ Score Range)
+//   – Filters (Institution ▸ Batch ▸ Class ▸ Score Range)
 //   – KPI strip (Total Tests, Weighted Accuracy, Top Performer, Risk Donut, Improvement Donut)
 //   – Accuracy‑by‑Attempt bucket bar chart (<50 %, 50–75 %, >75 %)
 //   – Top / Bottom classes OR students list (context‑aware)
@@ -16,6 +16,7 @@ import DashboardCard from "@/components/ui/DashboardCard";
 import FilterRow from "@/components/ui/FilterRow";
 import { faker } from "@faker-js/faker";
 import { format, isWithinInterval, subDays } from "date-fns";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart, PieChart, Pie, Cell, Legend } from 'recharts';
 
 /* -------------------------------------------------------------------------- */
 /*                               Dummy Dataset                                */
@@ -75,7 +76,7 @@ export default function Section1Dashboard() {
   const institutions = [...new Set(DATASET.map((d) => d.institution))];
   const batches = [...new Set(DATASET.map((d) => d.batch))];
   const classes = [...new Set(DATASET.map((d) => d.class))];
-  const subjects = [...new Set(DATASET.map((d) => d.subject))];
+  // const subjects = [...new Set(DATASET.map((d) => d.subject))];
 
   // Filter state for FilterRow
   const [dateRange, setDateRange] = useState({
@@ -86,8 +87,8 @@ export default function Section1Dashboard() {
     institution: "All",
     batch: "All",
     class: "All",
-    subject: "All",
     scoreRange: [200, 720],
+    examType: "Weekly", // Add examType to filter state, default to Weekly
   });
   // Update filter handlers with explicit types
   const updateFilter = (k: keyof typeof filter) => (v: any) => setFilter((p) => ({ ...p, [k]: v }));
@@ -99,7 +100,6 @@ export default function Section1Dashboard() {
         if (filter.institution !== "All" && d.institution !== filter.institution) return false;
         if (filter.batch !== "All" && d.batch !== filter.batch) return false;
         if (filter.class !== "All" && d.class !== filter.class) return false;
-        if (filter.subject !== "All" && d.subject !== filter.subject) return false;
         if (d.projected < filter.scoreRange[0] || d.projected > filter.scoreRange[1]) return false;
         if (
           !isWithinInterval(new Date(d.testDate), {
@@ -138,6 +138,24 @@ export default function Section1Dashboard() {
     const above400 = latestArr.filter(s => s.projected >= 400).length;
     const readiness = latestArr.length ? ((latestArr.filter(s => s.projected >= 550).length / latestArr.length) * 100).toFixed(1) : '0';
 
+    // --- Custom KPIs for cards ---
+    // Average Attempt Rate (%)
+    const avgAttemptRate = latestArr.length
+      ? (
+          latestArr.reduce((sum, s) => sum + (s.attempted / 180) * 100, 0) / latestArr.length
+        ).toFixed(1)
+      : '0.0';
+    // Top 10% Avg Score
+    const sortedByScore = [...latestArr].sort((a, b) => b.projected - a.projected);
+    const top10Count = Math.max(1, Math.round(latestArr.length * 0.1));
+    const top10Avg = top10Count > 0
+      ? (sortedByScore.slice(0, top10Count).reduce((sum, s) => sum + s.projected, 0) / top10Count).toFixed(1)
+      : '0.0';
+    // Bottom 10% Avg Score
+    const bottom10Avg = top10Count > 0
+      ? (sortedByScore.slice(-top10Count).reduce((sum, s) => sum + s.projected, 0) / top10Count).toFixed(1)
+      : '0.0';
+
     const topPerformer = latestArr.sort((a, b) => b.projected - a.projected)[0];
 
     const riskBuckets = { "High Risk": 0, Medium: 0, Safe: 0 };
@@ -169,6 +187,9 @@ export default function Section1Dashboard() {
       above500,
       above400,
       readiness,
+      avgAttemptRate,
+      top10Avg,
+      bottom10Avg,
     };
   }, [scoped]);
 
@@ -202,6 +223,40 @@ export default function Section1Dashboard() {
     ];
   }, [kpi.latestArr]);
 
+  // --- Top 10 Performer Dropdown State ---
+  const batchOptions = ['A', 'B', 'C'];
+  const classOptionsByBatch: Record<string, string[]> = {
+    A: Array.from({ length: 10 }, (_, i) => `11${String.fromCharCode(65 + i)}`),
+    B: Array.from({ length: 10 }, (_, i) => `12${String.fromCharCode(65 + i)}`),
+    C: Array.from({ length: 10 }, (_, i) => `13${String.fromCharCode(65 + i)}`),
+  };
+  const [topBatch, setTopBatch] = useState('A');
+  const [topClass, setTopClass] = useState('All');
+  const topClassOptions = ['All', ...classOptionsByBatch[topBatch]];
+
+  // --- Top 10 Performer Data ---
+  const top10Filtered = useMemo(() => {
+    let arr = [...kpi.latestArr];
+    // Simulate batch/class filtering (since dummy data doesn't have batch/class in this format)
+    if (topBatch !== 'All') arr = arr.filter(s => s.class.startsWith(topBatch === 'A' ? '11' : topBatch === 'B' ? '12' : '13'));
+    if (topClass !== 'All') arr = arr.filter(s => s.class === topClass);
+    return arr.sort((a, b) => b.projected - a.projected).slice(0, 10);
+  }, [kpi.latestArr, topBatch, topClass]);
+
+  // --- Improvement Trend Card Data ---
+  const trendInterval = 15; // days
+  const today = new Date();
+  const trendPoints = [];
+  for (let i = 180; i >= 0; i -= trendInterval) {
+    const from = subDays(today, i);
+    const to = subDays(today, i - trendInterval);
+    const scores = kpi.latestArr.filter(r => isWithinInterval(new Date(r.testDate), { start: from, end: to }));
+    trendPoints.push({
+      date: format(from, 'MMM d'),
+      avg: scores.length ? (scores.reduce((a, b) => a + b.projected, 0) / scores.length).toFixed(1) : 0
+    });
+  }
+
   /* ---------------------------------------------------------------------- */
   /*                                 JSX                                    */
   /* ---------------------------------------------------------------------- */
@@ -223,29 +278,39 @@ export default function Section1Dashboard() {
           clazz={filter.class}
           onClassChange={updateFilter("class")}
           classes={classes}
-          subject={filter.subject}
-          onSubjectChange={updateFilter("subject")}
-          subjects={subjects}
-          examType="NEET"
-          onExamTypeChange={() => {}}
+          examType={filter.examType}
+          onExamTypeChange={updateFilter("examType")}
         />
         {/* --- PERFORMANCE ANALYTICS SECTION --- */}
         <section className="mb-10">
           {/* Row 1: Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6 mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-10">
             { [
               { label: 'Total Tests Conducted', value: kpi.testsTaken },
               { label: 'Average Accuracy %', value: `${kpi.accuracy}%` },
-              { label: 'Average Total Score', value: kpi.avgScore },
-              { label: 'Highest Score', value: kpi.maxScore },
-              { label: 'Lowest Score', value: kpi.minScore },
+              { label: 'Average Total Score', value: (
+                <>
+                  {kpi.avgScore} <span className="text-xs text-slate-400 font-semibold">/ 720</span>
+                </>
+              ) },
+              { label: 'Average Attempt Rate (%)', value: kpi.avgAttemptRate, color: '#f97316' },
+              { label: 'Top 10% Avg Score', value: (
+                <>
+                  {kpi.top10Avg} <span className="text-xs text-slate-400 font-semibold">/ 720</span>
+                </>
+              ), color: '#1e40af' },
+              { label: 'Bottom 10% Avg Score', value: (
+                <>
+                  {kpi.bottom10Avg} <span className="text-xs text-slate-400 font-semibold">/ 720</span>
+                </>
+              ), color: '#dc2626' },
             ].map((card, i) => (
               <div
                 key={card.label}
-                className="bg-gradient-to-br from-slate-50 to-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-200 border border-blue-50 flex flex-col items-start group relative overflow-hidden"
+                className="bg-gradient-to-br from-slate-50 to-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-shadow duration-200 border border-blue-50 flex flex-col items-start group relative overflow-hidden min-h-[110px]"
               >
                 <span className="text-xs font-semibold uppercase text-slate-500 mb-2 tracking-wider group-hover:text-blue-700 transition-colors">{card.label}</span>
-                <span className="text-3xl font-extrabold text-slate-900 drop-shadow-sm group-hover:text-blue-700 transition-colors">{card.value}</span>
+                <span className="text-3xl font-extrabold drop-shadow-sm group-hover:text-blue-700 transition-colors flex items-end gap-1" style={card.color ? { color: card.color } : {}}>{card.value}</span>
                 <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity text-6xl font-black select-none pointer-events-none text-blue-200">{i + 1}</div>
               </div>
             )) }
@@ -253,66 +318,156 @@ export default function Section1Dashboard() {
 
           {/* Row 2: Main Visuals Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Left: Score Distribution Bar Chart + Risk Breakdown */}
-            <div className="md:col-span-2 flex flex-col h-full">
-              <div className="bg-gradient-to-br from-blue-50 to-white p-8 rounded-2xl shadow-lg flex flex-col min-h-[240px] h-full justify-between border border-blue-100 flex-1">
-                <span className="text-lg font-bold text-blue-900 mb-4 tracking-wide">Score Distribution Summary</span>
-                <div className="flex-1 flex flex-col justify-center gap-4">
-                  { (() => {
-                    const bars = [
-                      { label: '> 600', value: kpi.above600, color: 'bg-blue-900', grad: 'from-blue-900 to-blue-500' },
-                      { label: '> 500', value: kpi.above500, color: 'bg-blue-700', grad: 'from-blue-700 to-blue-300' },
-                      { label: '> 400', value: kpi.above400, color: 'bg-teal-500', grad: 'from-teal-500 to-teal-200' },
-                      { label: '≥ 550', value: kpi.latestArr ? Math.round((Number(kpi.readiness) / 100) * kpi.latestArr.length) : 0, color: 'bg-slate-400', grad: 'from-slate-400 to-slate-200' },
-                    ];
+            {/* Left: Score Distribution + New KPI Cards */}
+            <div className="md:col-span-1 flex flex-col gap-6 min-w-[260px] max-w-[340px]">
+              {/* Score Distribution Summary (compact, tiered) */}
+              <div className="bg-gradient-to-br from-blue-50 to-white p-6 rounded-2xl shadow-lg flex flex-col border border-blue-100 min-h-[200px] h-[200px] justify-between">
+                <span className="text-lg font-bold text-blue-900 mb-2 tracking-wide">Score Distribution</span>
+                <div className="flex flex-col gap-2 flex-1 justify-center">
+                  {(() => {
                     const total = kpi.latestArr?.length || 1;
-                    return bars.map((bar) => {
-                      const pct = total ? ((bar.value / total) * 100).toFixed(1) : '0.0';
+                    const bands = [
+                      { label: '> 600', value: kpi.above600, color: 'bg-blue-900/90' },
+                      { label: '> 550', value: kpi.latestArr ? kpi.latestArr.filter(s => s.projected > 550).length : 0, color: 'bg-blue-700/80' },
+                      { label: '> 500', value: kpi.above500, color: 'bg-blue-500/70' },
+                      { label: '> 400', value: kpi.above400, color: 'bg-teal-400/60' },
+                    ];
+                    return bands.map((band) => {
+                      const pct = total ? ((band.value / total) * 100).toFixed(1) : '0.0';
                       return (
-                        <div key={bar.label} className="flex items-center group relative mb-2 last:mb-0">
-                          <div className="h-3 rounded-full bg-slate-100 flex items-center w-full min-w-0 overflow-hidden">
-                            <div className={`transition-all duration-500 h-full rounded-full bg-gradient-to-r ${bar.grad}`} style={{ width: `${Math.max(5, (bar.value / total) * 100)}%`, minWidth: 12, maxWidth: '90%' }} />
-                          </div>
-                          <span className="ml-3 text-xs font-bold text-blue-900 w-14 text-right tabular-nums group-hover:text-blue-700 transition-colors">{bar.value}</span>
-                          <span className="ml-2 text-xs text-slate-500 w-16 text-right">{bar.label}</span>
-                          {/* Tooltip */}
-                          <div className="absolute left-1/2 -translate-x-1/2 top-7 z-10 hidden group-hover:flex flex-col bg-white border border-blue-100 rounded shadow px-3 py-2 text-xs text-blue-900 min-w-[120px]">
-                            <span><b>{bar.value}</b> students</span>
-                            <span>({pct}%)</span>
-                          </div>
+                        <div key={band.label} className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${band.color} border border-slate-200`} />
+                          <span className="text-sm font-semibold text-blue-900 w-16">{band.label}</span>
+                          <span className="text-base font-bold text-blue-700 w-10 text-right tabular-nums">{band.value}</span>
+                          <span className="text-xs text-slate-500 w-12 text-right">{pct}%</span>
                         </div>
                       );
                     });
-                  })() }
+                  })()}
                 </div>
-                {/* Risk Breakdown Horizontal Bar */}
-                <div className="mt-8">
-                  <span className="block text-sm font-semibold text-slate-700 mb-2">Risk Breakdown</span>
-                  <div className="flex w-full h-6 rounded-full overflow-hidden shadow border border-slate-100">
-                    {riskBreakdown.map((seg) => (
-                      <div
-                        key={seg.label}
-                        style={{ width: `${seg.pct}%`, background: seg.color, transition: 'width 0.4s' }}
-                        className="flex items-center justify-center h-full relative group"
-                      >
-                        <span className="text-xs font-bold text-white drop-shadow-sm absolute left-1/2 -translate-x-1/2">
-                          {seg.value} ({seg.pct}%)
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-between mt-2 text-xs text-slate-500">
-                    {riskBreakdown.map(seg => (
-                      <span key={seg.label} className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded" style={{ background: seg.color }} />{seg.label}</span>
-                    ))}
-                  </div>
-                </div>
+              </div>
+              {/* New KPI Card: % Improving */}
+              <div className="bg-gradient-to-br from-green-50 to-white p-4 rounded-2xl shadow flex flex-col border border-green-100 min-h-[80px] h-[80px] justify-center">
+                <span className="text-2xl font-bold text-emerald-600">{(() => {
+                  const total = kpi.latestArr?.length || 1;
+                  const improving = kpi.improveBuckets?.Improved || 0;
+                  return `${((improving / total) * 100).toFixed(1)}%`;
+                })()}</span>
+                <span className="text-xs text-slate-500 mt-1">% of Students Improving</span>
+              </div>
+              {/* New KPI Card: Best Performing Class */}
+              <div className="bg-gradient-to-br from-blue-50 to-white p-4 rounded-2xl shadow flex flex-col border border-blue-100 min-h-[80px] h-[80px] justify-center">
+                <span className="text-2xl font-bold text-blue-700">{(() => {
+                  if (filter.class !== 'All') return 'N/A';
+                  const byClass: Record<string, number[]> = {};
+                  kpi.latestArr?.forEach(s => {
+                    if (!byClass[s.class]) byClass[s.class] = [];
+                    byClass[s.class].push(s.projected);
+                  });
+                  let best: string | null = null, bestAvg = -1;
+                  Object.entries(byClass).forEach(([cls, arr]) => {
+                    const avg = (arr as number[]).reduce((a, b) => a + b, 0) / (arr as number[]).length;
+                    if (avg > bestAvg) { bestAvg = avg; best = cls; }
+                  });
+                  return best || 'N/A';
+                })()}</span>
+                <span className="text-xs text-slate-500 mt-1">Best Performing Class</span>
+              </div>
+            </div>
+            {/* Center: Risk Breakdown Pie + New KPI Cards */}
+            <div className="md:col-span-1 flex flex-col gap-6 min-w-[260px] max-w-[340px]">
+              {/* Risk Breakdown Pie Chart */}
+              <div className="bg-gradient-to-br from-red-50 to-white p-6 rounded-2xl shadow-lg flex flex-col border border-red-100 min-h-[200px] h-[200px] justify-between">
+                <span className="text-lg font-bold text-red-900 mb-2 tracking-wide">Risk Breakdown</span>
+                <ResponsiveContainer width="100%" height={120}>
+                  <PieChart>
+                    <Pie
+                      data={(() => {
+                        let high = 0, med = 0, low = 0;
+                        (kpi.latestArr || []).forEach((s) => {
+                          const acc = (s.correct / (s.attempted || 1)) * 100;
+                          if (s.projected < 400 || acc < 30) high++;
+                          else if ((s.projected <= 500 && s.projected >= 400) || (acc >= 30 && acc <= 50)) med++;
+                          else low++;
+                        });
+                        const total = kpi.latestArr?.length || 1;
+                        return [
+                          { name: 'High Risk', value: high, color: '#ef4444', insight: `${high} students have accuracy below 30% or score < 400` },
+                          { name: 'Medium Risk', value: med, color: '#f59e42', insight: `${med} students are in the 400-500 range or 30-50% accuracy` },
+                          { name: 'Safe', value: low, color: '#10b981', insight: `${low} students are above 500 and >50% accuracy` },
+                        ];
+                      })()}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={30}
+                      outerRadius={50}
+                      fill="#8884d8"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {(() => {
+                        const colors = ['#ef4444', '#f59e42', '#10b981'];
+                        return colors.map((color) => <Cell key={color} fill={color} />);
+                      })()}
+                    </Pie>
+                    <Tooltip content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const d = payload[0].payload;
+                        return (
+                          <div className="bg-white border border-slate-200 rounded shadow px-3 py-2 text-xs text-blue-900">
+                            <b>{d.name}</b><br />{d.insight}
+                          </div>
+                        );
+                      }
+                      return null;
+                    }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              {/* New KPI Card: Most Improved Subject */}
+              <div className="bg-gradient-to-br from-amber-50 to-white p-4 rounded-2xl shadow flex flex-col border border-amber-100 min-h-[80px] h-[80px] justify-center">
+                <span className="text-2xl font-bold text-amber-600">{(() => {
+                  // Find subject with highest average improvement
+                  const bySubject: Record<string, number[]> = {};
+                  kpi.latestArr?.forEach(s => {
+                    if (!bySubject[s.subject]) bySubject[s.subject] = [];
+                    // Find improvement for this student in this subject
+                    // For now, use projected score as proxy (since dummy data)
+                    bySubject[s.subject].push(s.projected);
+                  });
+                  let best: string | null = null, bestAvg = -1;
+                  Object.entries(bySubject).forEach(([subj, arr]) => {
+                    const avg = (arr as number[]).reduce((a, b) => a + b, 0) / (arr as number[]).length;
+                    if (avg > bestAvg) { bestAvg = avg; best = subj; }
+                  });
+                  return best || 'N/A';
+                })()}</span>
+                <span className="text-xs text-slate-500 mt-1">Most Improved Subject</span>
+              </div>
+              {/* New KPI Card: Most Dropped Subject */}
+              <div className="bg-gradient-to-br from-slate-50 to-white p-4 rounded-2xl shadow flex flex-col border border-slate-100 min-h-[80px] h-[80px] justify-center">
+                <span className="text-2xl font-bold text-slate-700">{(() => {
+                  // Find subject with lowest average improvement
+                  const bySubject: Record<string, number[]> = {};
+                  kpi.latestArr?.forEach(s => {
+                    if (!bySubject[s.subject]) bySubject[s.subject] = [];
+                    bySubject[s.subject].push(s.projected);
+                  });
+                  let worst: string | null = null, worstAvg = 1e9;
+                  Object.entries(bySubject).forEach(([subj, arr]) => {
+                    const avg = (arr as number[]).reduce((a, b) => a + b, 0) / (arr as number[]).length;
+                    if (avg < worstAvg) { worstAvg = avg; worst = subj; }
+                  });
+                  return worst || 'N/A';
+                })()}</span>
+                <span className="text-xs text-slate-500 mt-1">Most Dropped Subject</span>
               </div>
             </div>
             {/* Right: NEET Readiness & Improvement Trend */}
             <div className="flex flex-col gap-8 h-full">
-              {/* NEET Readiness Card */}
-              <div className="bg-gradient-to-br from-slate-50 to-white p-6 rounded-2xl shadow-lg flex flex-col border border-blue-100 min-h-[240px] h-full flex-1 relative">
+              {/* NEET Readiness Card (reduced height) */}
+              <div className="bg-gradient-to-br from-slate-50 to-white p-4 rounded-2xl shadow-lg flex flex-col border border-blue-100 min-h-[160px] h-[160px] flex-1 relative">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-base font-bold text-blue-900 tracking-wide">NEET Readiness</span>
                   <select
@@ -330,57 +485,25 @@ export default function Section1Dashboard() {
                   <span className="text-xs text-slate-500 mt-2">% students scoring ≥ 550</span>
                 </div>
               </div>
-              {/* Improvement Trend Card (unchanged) */}
-              <div className="bg-gradient-to-br from-slate-50 to-white p-6 rounded-2xl shadow-lg flex flex-col border border-blue-100">
+              {/* Improvement Trend Card (larger, with Recharts) */}
+              <div className="bg-gradient-to-br from-slate-50 to-white p-6 rounded-2xl shadow-lg flex flex-col border border-blue-100 min-h-[260px] h-[260px] w-full">
                 <span className="text-base font-bold text-blue-900 mb-2 tracking-wide">Improvement Trend</span>
-                { (() => {
-                  const days = 7;
-                  const today = new Date();
-                  const trend = [];
-                  for (let i = days - 1; i >= 0; i--) {
-                    const day = format(subDays(today, i), 'yyyy-MM-dd');
-                    const scores = kpi.latestArr?.filter(r => format(new Date(r.testDate), 'yyyy-MM-dd') === day).map(r => r.projected) || [];
-                    trend.push({ day, avg: scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 0 });
-                  }
-                  return (
-                    <svg viewBox="0 0 210 60" width="100%" height="60" className="w-full h-16">
-                      {/* Y axis: 0 to 720 mapped to 60px */}
-                      {trend.length > 1 && (
-                        <polyline
-                          fill="none"
-                          stroke="#2563eb"
-                          strokeWidth="2.5"
-                          style={{ filter: 'drop-shadow(0 2px 6px #2563eb33)' }}
-                          points={trend.map((d, i) => `${i * 30},${60 - (Number(d.avg) / 720) * 60}`).join(' ')}
-                        />
-                      )}
-                      {/* Dots and tooltips */}
-                      {trend.map((d, i) => (
-                        <g key={d.day} className="group">
-                          <circle
-                            cx={i * 30}
-                            cy={60 - (Number(d.avg) / 720) * 60}
-                            r="3.5"
-                            fill="#2563eb"
-                            className="transition-all duration-300"
-                          />
-                          <title>
-                            {`${d.day}:
-Avg Score: ${d.avg}`}
-                          </title>
-                        </g>
-                      ))}
-                      {/* X axis labels */}
-                      {trend.map((d, i) => (
-                        <text key={d.day} x={i * 30} y={58} fontSize="8" textAnchor="middle" fill="#64748b">{d.day.slice(5)}</text>
-                      ))}
-                      {/* Y axis labels */}
-                      <text x="0" y="10" fontSize="8" fill="#64748b">720</text>
-                      <text x="0" y="58" fontSize="8" fill="#64748b">0</text>
-                    </svg>
-                  );
-                })() }
-                <span className="mt-2 text-xs text-slate-500">Avg. projected score per test date</span>
+                <ResponsiveContainer width="100%" height={180}>
+                  <AreaChart data={trendPoints} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.7}/>
+                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis domain={[0, 720]} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <Tooltip formatter={v => `${v} pts`} />
+                    <Area type="monotone" dataKey="avg" stroke="#2563eb" fillOpacity={1} fill="url(#colorScore)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+                <span className="mt-2 text-xs text-slate-500">Avg. projected score every {trendInterval} days</span>
               </div>
             </div>
           </div>
@@ -388,98 +511,45 @@ Avg Score: ${d.avg}`}
         {/* Section: Performers */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <DashboardCard title="Top 10 Performers" className="md:col-span-12" content={(() => {
-  // Get last 5 testIds (by date)
-  const testIds = Array.from(new Set(DATASET.map(d => d.testId)));
-  const testDates: Record<string, string> = {};
-  DATASET.forEach(d => { if (!testDates[d.testId] || new Date(d.testDate).getTime() > new Date(testDates[d.testId]).getTime()) testDates[d.testId] = d.testDate.toString(); });
-  const sortedTestIds = testIds.sort((a, b) => new Date(testDates[b]).getTime() - new Date(testDates[a]).getTime()).slice(0, 5);
-  // For each test, get studentId to rank map
-  const testRankMaps = sortedTestIds.map(tid => {
-    const testRecords = DATASET.filter(d => d.testId === tid);
-    const sorted = [...testRecords].sort((a, b) => b.projected - a.projected);
-    const map = new Map<string, number>();
-    sorted.forEach((s, idx) => map.set(s.studentId, idx + 1));
-    return map;
-  });
-  // For each top 10 student, get their rank trend and last 5 test marks
-  const top10 = [...kpi.latestArr]
-    .sort((a, b) => b.projected - a.projected)
-    .slice(0, 10)
-    .map((s, idx) => {
-      const ranks = testRankMaps.map(map => map.get(s.studentId) || null);
-      const current = ranks[0];
-      const prev = ranks[1];
-      let movement = 'stable', diff = 0;
-      if (prev && current) {
-        diff = prev - current;
-        if (diff > 0) movement = 'up';
-        else if (diff < 0) movement = 'down';
-      }
-      // Get previous 5 test marks (projected score by testId, fallback to '-')
-      const marks = sortedTestIds.map(tid => {
-        const rec = DATASET.find(d => d.studentId === s.studentId && d.testId === tid);
-        return rec ? rec.projected : '-';
-      });
-      return {
-        rank: idx + 1, // Always assign 1 to 10
-        name: s.studentName,
-        class: s.class,
-        score: s.projected,
-        movement,
-        diff: Math.abs(diff),
-        marks,
-      };
-    })
-    .sort((a, b) => {
-      const ra = a.rank ?? 9999;
-      const rb = b.rank ?? 9999;
-      return ra - rb;
-    });
-  // Arrow SVGs
-  const Arrow = ({ dir, color }: { dir: 'up'|'down'|'stable', color: string }) => (
-    dir === 'up' ? <svg width="16" height="16" className="inline align-middle" style={{color}}><polyline points="8,12 8,4" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round"/><polyline points="4,8 8,4 12,8" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinejoin="round"/></svg>
-    : dir === 'down' ? <svg width="16" height="16" className="inline align-middle" style={{color}}><polyline points="8,4 8,12" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round"/><polyline points="4,8 8,12 12,8" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinejoin="round"/></svg>
-    : <svg width="16" height="16" className="inline align-middle" style={{color}}><line x1="4" y1="8" x2="12" y2="8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg>
-  );
-  return (
-    <table className="min-w-full text-sm">
-      <thead>
-        <tr className="text-center border-b border-blue-100">
-          <th className="py-1 text-blue-500">Rank</th>
-          <th className="py-1 text-blue-500">Name</th>
-          <th className="py-1 text-blue-500">Class</th>
-          <th className="py-1 text-blue-500">Score</th>
-          {/* Dynamically render Test 1 to Test 5 headings */}
-          {sortedTestIds.map((tid) => (
-            <th key={tid} className="py-1 text-blue-500">Test</th>
-          ))}
-          <th className="py-1 text-blue-500">Rank Movement</th>
-        </tr>
-      </thead>
-      <tbody>
-        {top10.map((s) => (
-          <tr key={s.rank} className="border-b border-blue-50 hover:bg-blue-50 transition-all duration-200 text-center">
-            <td className="py-1 text-blue-900 font-semibold">{s.rank}</td>
-            <td className="py-1 text-blue-900">{s.name}</td>
-            <td className="py-1 text-blue-900">{s.class}</td>
-            <td className="py-1 font-medium text-blue-700">{s.score}</td>
-            {/* Render each mark in its own column */}
-            {s.marks.map((m, i) => (
-              <td key={i} className="py-1">
-                <span className="inline-block px-1 py-0.5 rounded bg-slate-100 text-xs font-mono text-blue-900 min-w-[28px] text-center">{m}</span>
-              </td>
-            ))}
-            <td className="py-1">
-              <span className="inline-flex items-center justify-center" title={s.movement === 'up' ? `Improved by ${s.diff} rank${s.diff === 1 ? '' : 's'}` : s.movement === 'down' ? `Dropped by ${s.diff} rank${s.diff === 1 ? '' : 's'}` : 'No change'}>
-                <Arrow dir={s.movement as any} color={s.movement === 'up' ? '#16a34a' : s.movement === 'down' ? '#ef4444' : '#64748b'} />
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-})()} />
+            return (
+              <div className="w-full">
+                <div className="flex flex-col sm:flex-row sm:items-end gap-2 mb-2">
+                  <div className="flex flex-col flex-1 min-w-[120px]">
+                    <label className="text-xs text-slate-500 font-semibold mb-1">Select Batch</label>
+                    <select className="px-2 py-1 text-xs rounded border border-slate-200 bg-white text-slate-700" value={topBatch} onChange={e => { setTopBatch(e.target.value); setTopClass('All'); }}>
+                      {batchOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex flex-col flex-1 min-w-[120px]">
+                    <label className="text-xs text-slate-500 font-semibold mb-1">Select Class</label>
+                    <select className="px-2 py-1 text-xs rounded border border-slate-200 bg-white text-slate-700" value={topClass} onChange={e => setTopClass(e.target.value)}>
+                      {topClassOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="text-center border-b border-blue-100">
+                      <th className="py-1 text-blue-500">Rank</th>
+                      <th className="py-1 text-blue-500">Name</th>
+                      <th className="py-1 text-blue-500">Class</th>
+                      <th className="py-1 text-blue-500">Overall Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {top10Filtered.map((s, i) => (
+                      <tr key={i} className="border-b border-blue-50 hover:bg-blue-50 transition-all duration-200 text-center">
+                        <td className="py-1 text-blue-900 font-semibold">{i + 1}</td>
+                        <td className="py-1 text-blue-900">{s.studentName}</td>
+                        <td className="py-1 text-blue-900">{s.class}</td>
+                        <td className="py-1 font-medium text-blue-700">{s.projected}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()} />
         </div>
       </main>
     </div>

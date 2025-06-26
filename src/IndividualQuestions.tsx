@@ -1,15 +1,71 @@
 import React, { useState, useMemo } from "react";
-import { Download, FileText, Eye, X, ChevronDown } from "lucide-react";
+import { Eye, X, ChevronDown, Download, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 // --------------------
 // NEET Topics & Subjects
 // --------------------
+const NEET_SUBJECTS = ["Physics", "Chemistry", "Botany", "Zoology"];
+const CLASSES = ["11A", "11B", "11C", "11D", "11E", "11F"];
+const TEST_TYPES = ["Weekly", "Cumulative", "Grand Test"];
+const BATCHES = ["Batch A", "Batch B"];
 
-const NEET_SUBJECTS = ["Physics", "Chemistry", "Biology"];
-const CLASSES = ["Overall Class", "11A", "11B", "11C", "11D", "11E"];
-const TESTS = ["Unit Test 1", "Unit Test 2", "Midterm", "Final"];
-const EXAM_TYPES = ["Weekly", "Cumulative", "Grant"];
+// Add these constants above the main component
+const CUMULATIVE_PAIRS: string[] = [
+  "Physics + Botany",
+  "Chemistry + Zoology"
+];
+const TOTAL_STUDENTS = 2000;
+const SECTION_COUNT = 20;
+
+// Helper: Generate months from June 2025 to May 2026
+const MONTHS = (() => {
+  const months = [];
+  const start = new Date(2025, 5, 1); // June 2025
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+    months.push({
+      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      label: d.toLocaleString("default", { month: "long", year: "numeric" }),
+      year: d.getFullYear(),
+      month: d.getMonth(),
+    });
+  }
+  return months;
+})();
+
+// Helper: Get weeks in a month (Sunday–Saturday)
+function getWeeksInMonth(year: number, month: number) {
+  const weeks = [];
+  let date = new Date(year, month, 1);
+  let week = [];
+  while (date.getMonth() === month) {
+    week.push(new Date(date));
+    if (date.getDay() === 6) { // Saturday
+      weeks.push(week);
+      week = [];
+    }
+    date.setDate(date.getDate() + 1);
+  }
+  if (week.length) weeks.push(week);
+  return weeks;
+}
+
+// Helper: Get subjects for a week
+function getSubjectsForWeek(week: Date[]) {
+  const dayToSubject: Record<number, string> = {
+    3: "Physics",    // Wednesday
+    4: "Chemistry",  // Thursday
+    5: "Botany",     // Friday
+    6: "Zoology",    // Saturday
+  };
+  return week
+    .filter(d => dayToSubject[d.getDay()])
+    .map(d => ({
+      day: d,
+      subject: dayToSubject[d.getDay()],
+    }));
+}
 
 // --------------------
 // Types
@@ -69,7 +125,7 @@ const QUESTIONS: Question[] = Array.from({ length: 180 }, (_, i) => {
 			{ option: "D", count: Math.floor(Math.random() * 20) },
 		],
 		class: getRandom(CLASSES.slice(1)), // Exclude 'Overall Class' for data
-		test: getRandom(TESTS),
+		test: getRandom(TEST_TYPES),
 	};
 });
 
@@ -252,119 +308,329 @@ function QuestionViewModal({
 // --------------------
 // Main Component
 // --------------------
+const SECTION_OPTIONS = [
+  ...Array.from({ length: 10 }, (_, i) => `11${String.fromCharCode(65 + i)}`),
+  ...Array.from({ length: 10 }, (_, i) => `12${String.fromCharCode(65 + i)}`),
+];
+
 const IndividualQuestions: React.FC<{ studentResponses?: StudentResponse[] }> = ({ studentResponses = [] }) => {
-	// Top bar filters
-	const [selectedClass, setSelectedClass] = useState<string>(CLASSES[0]);
-	const [selectedTest, setSelectedTest] = useState<string>("");
-	const [selectedSubject, setSelectedSubject] = useState<string>("");
-	const [selectedExamType, setSelectedExamType] = useState<string>(EXAM_TYPES[0]);
-	const [viewModalQuestion, setViewModalQuestion] = useState<Question | null>(null);
+  // Top bar filters
+  const [testType, setTestType] = useState<string>(TEST_TYPES[0]);
+  const [selectedMonth, setSelectedMonth] = useState<string>(MONTHS[0].value);
+  const [selectedWeekIdx, setSelectedWeekIdx] = useState<number>(0);
+  const [selectedSubject, setSelectedSubject] = useState<string>("Physics"); // Default to Physics for Weekly
+  const [selectedBatch, setSelectedBatch] = useState<string>(BATCHES[0]);
+  const [selectedPair, setSelectedPair] = useState<string>(CUMULATIVE_PAIRS[0]);
+  const [selectedGrandTest, setSelectedGrandTest] = useState<string>("Grand Test 1");
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([...CLASSES]);
+  const [selectedSections, setSelectedSections] = useState<string[]>([...SECTION_OPTIONS]);
+  const [viewModalQuestion, setViewModalQuestion] = useState<Question | null>(null);
+  const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false);
 
-	// Dummy handlers for download
-	const handleDownload = (type: string) => {
-		alert(`Download as ${type} (dummy)`);
-	};
+  // --- Weekly: Calculate weeks and subjects ---
+  const selectedMonthObj = MONTHS.find(m => m.value === selectedMonth)!;
+  const weeks = useMemo(() => getWeeksInMonth(selectedMonthObj.year, selectedMonthObj.month), [selectedMonthObj]);
+  const weekSubjects = weeks[selectedWeekIdx] ? getSubjectsForWeek(weeks[selectedWeekIdx]) : [];
+  const weekSubjectOptions = weekSubjects.map(ws => ws.subject);
 
-	// Filtered questions
-	const questionsToShow = useMemo(() => {
-		return QUESTIONS.filter(q =>
-			(selectedClass === "Overall Class" || q.class === selectedClass) &&
-			(!selectedTest || q.test === selectedTest) &&
-			(!selectedSubject || q.subject === selectedSubject)
-		);
-	}, [selectedClass, selectedTest, selectedSubject]);
+  // --- Grand Test Names ---
+  const grandTestNames = useMemo(() => Array.from({ length: 4 }, (_, i) => `Grand Test ${i + 1}`), [selectedMonth]);
 
-	return (
-		<div className="min-h-screen bg-gray-50 pb-8">
-			{/* Top Bar Filters */}
-			<div className="sticky top-0 z-30 bg-white shadow flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-4 py-3 border-b">
-				<div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
-					{/* Class Dropdown */}
-					<div className="relative">
-						<select className="appearance-none border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-							{CLASSES.map(cls => <option key={cls} value={cls}>{cls}</option>)}
-						</select>
-						<ChevronDown className="pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-					</div>
-					{/* Exam Type Dropdown */}
-					<div className="relative">
-						<select className="appearance-none border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedExamType} onChange={e => setSelectedExamType(e.target.value)}>
-							<option value="">All Exams</option>
-							{EXAM_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
-						</select>
-						<ChevronDown className="pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-					</div>
-					{/* Test Dropdown */}
-					<div className="relative">
-						<select className="appearance-none border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedTest} onChange={e => setSelectedTest(e.target.value)}>
-							{TESTS.map(test => <option key={test} value={test}>{test}</option>)}
-						</select>
-						<ChevronDown className="pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-					</div>
-					{/* Subject Dropdown */}
-					<div className="relative">
-						<select className="appearance-none border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)}>
-							<option value="">All Subjects</option>
-							{NEET_SUBJECTS.map(sub => <option key={sub} value={sub}>{sub}</option>)}
-						</select>
-						<ChevronDown className="pointer-events-none absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-					</div>
-				</div>
-				{/* Download Buttons */}
-				<div className="flex gap-2">
-					<button className="flex items-center gap-1 px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition shadow" onClick={() => handleDownload("CSV")}> <Download className="w-4 h-4" /> CSV </button>
-					<button className="flex items-center gap-1 px-3 py-2 rounded bg-gray-700 text-white hover:bg-gray-800 transition shadow" onClick={() => handleDownload("PDF")}> <FileText className="w-4 h-4" /> PDF </button>
-				</div>
-			</div>
+  // --- Class Checkbox Handler ---
+  const toggleClass = (cls: string) => {
+    setSelectedClasses(prev => prev.includes(cls) ? prev.filter(c => c !== cls) : [...prev, cls]);
+  };
 
-			{/* Per-Question Analysis (full-width, scrollable) */}
-			<div className="w-full max-w-7xl mx-auto px-2 md:px-6 mt-6">
-				<div className="bg-white rounded-xl shadow p-4 overflow-x-auto max-h-[70vh] overflow-y-auto">
-					<h2 className="text-lg font-bold mb-4">Per-Question Analysis <span className="text-xs text-gray-400">({questionsToShow.length} questions)</span></h2>
-					<div className="w-full min-w-[1100px]">
-						<table className="w-full text-sm whitespace-nowrap">
-							<thead>
-								<tr className="bg-gray-100">
-									<th className="py-2 px-2 text-left">Q#</th>
-									<th className="py-2 px-2 text-left">Subject</th>
-									<th className="py-2 px-2 text-center">Attempts</th>
-									<th className="py-2 px-2 text-center">Correct</th>
-									<th className="py-2 px-2 text-center">Incorrect</th>
-									<th className="py-2 px-2 text-center">Accuracy</th>
-									<th className="py-2 px-2 text-center">View</th>
-								</tr>
-							</thead>
-							<tbody>
-								{questionsToShow.map(q => (
-									<tr key={q.id} className="border-b hover:bg-blue-50 transition">
-										<td className="py-2 px-2">{q.number}</td>
-										<td className="py-2 px-2">{q.subject}</td>
-										<td className="py-2 px-2 text-center">{q.attempts}</td>
-										<td className="py-2 px-2 text-center">{q.correct}</td>
-										<td className="py-2 px-2 text-center">{q.incorrect}</td>
-										<td className="py-2 px-2 text-center">{getAccuracyBadge(q.accuracy)}</td>
-										<td className="py-2 px-2 text-center">
-											<button className="text-blue-600 hover:underline flex items-center gap-1" onClick={() => setViewModalQuestion(q)}>
-												<Eye className="w-4 h-4" /> View
-											</button>
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
-				</div>
-			</div>
+  // Section (Class) Dropdown logic
+  const toggleSection = (section: string) => {
+    setSelectedSections(prev =>
+      prev.includes(section)
+        ? prev.filter(s => s !== section)
+        : [...prev, section]
+    );
+  };
+  const allSectionsSelected = selectedSections.length === 20;
+  const handleSelectAllSections = () => {
+    setSelectedSections(allSectionsSelected ? [] : [...Array.from({ length: 20 }, (_, i) => `Section ${i + 1}`)]);
+  };
 
-			{/* View Modal */}
-			<QuestionViewModal
-				open={!!viewModalQuestion}
-				onClose={() => setViewModalQuestion(null)}
-				question={viewModalQuestion}
-				studentResponses={studentResponses}
-			/>
-		</div>
-	);
+  // --- Filtered questions logic ---
+  const questionsToShow = useMemo(() => {
+    let questions: Question[] = [];
+    if (testType === "Weekly") {
+      if (!selectedSubject) return [];
+      let count = 0;
+      if (selectedSubject === "Physics") count = 30;
+      else if (selectedSubject === "Chemistry") count = 45;
+      else if (selectedSubject === "Botany" || selectedSubject === "Zoology") count = 60;
+      questions = QUESTIONS.filter(q => q.subject === selectedSubject).slice(0, count);
+      // Always start numbering from 1
+      questions = questions.map((q, i) => ({ ...q, number: i + 1 }));
+    } else if (testType === "Cumulative") {
+      const pair = selectedPair.split(" + ");
+      let first = QUESTIONS.filter(q => q.subject === pair[0]).slice(0, 50).map((q, i) => ({ ...q, number: i + 1 }));
+      let second = QUESTIONS.filter(q => q.subject === pair[1]).slice(0, 50).map((q, i) => ({ ...q, number: i + 51 }));
+      questions = [...first, ...second];
+    } else if (testType === "Grand Test") {
+      // Physics: 1–30, Chemistry: 31–75, Botany: 76–135, Zoology: 136–180
+      let idx = 1;
+      let physics = QUESTIONS.filter(q => q.subject === "Physics").slice(0, 30).map((q, i) => ({ ...q, number: idx + i }));
+      idx += 30;
+      let chemistry = QUESTIONS.filter(q => q.subject === "Chemistry").slice(0, 45).map((q, i) => ({ ...q, number: idx + i }));
+      idx += 45;
+      let botany = QUESTIONS.filter(q => q.subject === "Botany").slice(0, 60).map((q, i) => ({ ...q, number: idx + i }));
+      idx += 60;
+      let zoology = QUESTIONS.filter(q => q.subject === "Zoology").slice(0, 45).map((q, i) => ({ ...q, number: idx + i }));
+      questions = [...physics, ...chemistry, ...botany, ...zoology];
+    }
+    // Do NOT filter by section here; section affects only stats, not question count
+    return questions;
+  }, [testType, selectedSubject, selectedPair, selectedGrandTest, selectedWeekIdx, selectedMonth]);
+
+  // --- Per-question stats based on selected sections ---
+  // For demo, simulate per-question stats by section
+  const getSectionStats = (q: Question) => {
+    // Simulate: each section has 10-20 students per question
+    const count = selectedSections.length * 15;
+    // Simulate attempts/correct/incorrect as a function of count
+    const attempts = Math.round(count * 0.95);
+    const correct = Math.round(attempts * (q.accuracy / 100));
+    const incorrect = attempts - correct;
+    return { count, attempts, correct, incorrect, accuracy: q.accuracy };
+  };
+
+  // --- Export Handlers ---
+  const handleExport = (type: "CSV" | "PDF") => {
+    alert(`Export as ${type} (demo only)`);
+  };
+
+  // --- UI ---
+  return (
+    <div className="h-screen min-h-0 flex flex-col bg-gray-50">
+      {/* Top Bar Filters */}
+      <div className="sticky top-0 z-30 bg-white shadow flex flex-wrap items-center justify-between gap-4 px-4 py-4 rounded-b-2xl border-b">
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Test Type Dropdown */}
+          <div className="relative min-w-[140px]">
+            <label className="block text-xs font-semibold mb-1 text-gray-600">Test Type</label>
+            <select
+              className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 pr-8 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition"
+              value={testType}
+              onChange={e => {
+                setTestType(e.target.value);
+                setSelectedMonth(MONTHS[0].value);
+                setSelectedWeekIdx(0);
+                setSelectedSubject("Physics");
+                setSelectedBatch(BATCHES[0]);
+                setSelectedPair(CUMULATIVE_PAIRS[0]);
+                setSelectedGrandTest("Grand Test 1");
+              }}
+            >
+              {TEST_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-8 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          </div>
+          {/* Month Dropdown */}
+          <div className="relative min-w-[160px]">
+            <label className="block text-xs font-semibold mb-1 text-gray-600">Month</label>
+            <select
+              className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 pr-8 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition"
+              value={selectedMonth}
+              onChange={e => {
+                setSelectedMonth(e.target.value);
+                setSelectedWeekIdx(0);
+                setSelectedSubject("Physics");
+              }}
+            >
+              {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-8 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          </div>
+          {/* Weekly Filters */}
+          {testType === "Weekly" && (
+            <>
+              {/* Week Dropdown */}
+              <div className="relative min-w-[140px]">
+                <label className="block text-xs font-semibold mb-1 text-gray-600">Week</label>
+                <select
+                  className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 pr-8 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition"
+                  value={selectedWeekIdx}
+                  onChange={e => {
+                    setSelectedWeekIdx(Number(e.target.value));
+                    setSelectedSubject(weekSubjectOptions[0] || "");
+                  }}
+                >
+                  {weeks.map((w, i) => (
+                    <option key={i} value={i}>
+                      {`Week ${i + 1} (${w[0].toLocaleDateString()} - ${w[w.length - 1].toLocaleDateString()})`}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-8 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              </div>
+              {/* Subject Dropdown */}
+              <div className="relative min-w-[140px]">
+                <label className="block text-xs font-semibold mb-1 text-gray-600">Subject</label>
+                <select
+                  className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 pr-8 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition"
+                  value={selectedSubject}
+                  onChange={e => setSelectedSubject(e.target.value)}
+                >
+                  {weekSubjectOptions.map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-8 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              </div>
+            </>
+          )}
+          {/* Cumulative Filters */}
+          {testType === "Cumulative" && (
+            <>
+              {/* Batch Dropdown */}
+              <div className="relative min-w-[140px]">
+                <label className="block text-xs font-semibold mb-1 text-gray-600">Batch</label>
+                <select
+                  className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 pr-8 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition"
+                  value={selectedBatch}
+                  onChange={e => setSelectedBatch(e.target.value)}
+                >
+                  {BATCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-8 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              </div>
+              {/* Subject Pair Dropdown */}
+              <div className="relative min-w-[180px]">
+                <label className="block text-xs font-semibold mb-1 text-gray-600">Subject Pair</label>
+                <select
+                  className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 pr-8 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition"
+                  value={selectedPair}
+                  onChange={e => setSelectedPair(e.target.value)}
+                >
+                  {CUMULATIVE_PAIRS.map(pair => <option key={pair} value={pair}>{pair}</option>)}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-8 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              </div>
+            </>
+          )}
+          {/* Grand Test Filters */}
+          {testType === "Grand Test" && (
+            <>
+              {/* Grand Test Name Dropdown */}
+              <div className="relative min-w-[180px]">
+                <label className="block text-xs font-semibold mb-1 text-gray-600">Grand Test Name</label>
+                <select
+                  className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 pr-8 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition"
+                  value={selectedGrandTest}
+                  onChange={e => setSelectedGrandTest(e.target.value)}
+                >
+                  {grandTestNames.map(name => <option key={name} value={name}>{name}</option>)}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-8 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              </div>
+            </>
+          )}
+        </div>
+        {/* Section Dropdown */}
+        <div className="relative min-w-[220px]">
+          <label className="block text-xs font-semibold mb-1 text-gray-600">Section</label>
+          <button
+            type="button"
+            className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 pr-8 w-full flex justify-between items-center bg-white hover:bg-blue-50 transition shadow-sm"
+            onClick={() => setSectionDropdownOpen(v => !v)}
+          >
+            <span className="truncate text-left">{selectedSections.length === 0 ? "None" : selectedSections.length === SECTION_OPTIONS.length ? "All Sections" : selectedSections.join(", ")}</span>
+            <ChevronDown className="w-4 h-4 text-gray-400 ml-2" />
+          </button>
+          {sectionDropdownOpen && (
+            <div className="absolute right-0 mt-2 w-72 max-h-72 overflow-y-auto bg-white border rounded-xl shadow-lg z-50 p-2 animate-fadeIn">
+              <div className="flex items-center gap-2 mb-2 px-2">
+                <input
+                  type="checkbox"
+                  checked={selectedSections.length === SECTION_OPTIONS.length}
+                  onChange={() => setSelectedSections(selectedSections.length === SECTION_OPTIONS.length ? [] : [...SECTION_OPTIONS])}
+                  className="accent-blue-600 w-4 h-4 rounded"
+                  id="select-all-sections"
+                />
+                <label htmlFor="select-all-sections" className="text-sm font-medium cursor-pointer">Select All</label>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                {SECTION_OPTIONS.map(section => (
+                  <label key={section} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-blue-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedSections.includes(section)}
+                      onChange={() => setSelectedSections(prev => prev.includes(section) ? prev.filter(s => s !== section) : [...prev, section])}
+                      className="accent-blue-600 w-4 h-4 rounded"
+                    />
+                    <span className="text-sm font-medium">{section}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        {/* Export Buttons */}
+        <div className="flex gap-2 ml-auto">
+          <button className="flex items-center gap-1 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow" onClick={() => handleExport("CSV")}> <Download className="w-4 h-4" /> CSV </button>
+          <button className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-800 transition shadow" onClick={() => handleExport("PDF")}> <FileText className="w-4 h-4" /> PDF </button>
+        </div>
+      </div>
+
+      {/* Per-Question Analysis Section */}
+      <div className="flex-1 w-full max-w-7xl mx-auto px-2 md:px-6 mt-6 flex flex-col">
+        <div className="bg-white rounded-xl shadow p-0 overflow-hidden flex-1 flex flex-col">
+          <div className="w-full min-w-[1100px] flex-1 flex flex-col">
+            <table className="w-full text-sm whitespace-nowrap sticky top-0 z-10 bg-white">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="py-2 px-2 text-left">Q#</th>
+                  <th className="py-2 px-2 text-left">Subject</th>
+                  <th className="py-2 px-2 text-center">Total Count</th>
+                  <th className="py-2 px-2 text-center">Attempts</th>
+                  <th className="py-2 px-2 text-center">Correct</th>
+                  <th className="py-2 px-2 text-center">Incorrect</th>
+                  <th className="py-2 px-2 text-center">Accuracy</th>
+                  <th className="py-2 px-2 text-center">View</th>
+                </tr>
+              </thead>
+            </table>
+            <div className="overflow-y-auto flex-1">
+              <table className="w-full text-sm whitespace-nowrap">
+                <tbody>
+                  {questionsToShow.map(q => {
+                    const stats = getSectionStats(q);
+                    return (
+                      <tr key={q.id} className="border-b hover:bg-blue-50 transition">
+                        <td className="py-2 px-2">{q.number}</td>
+                        <td className="py-2 px-2">{q.subject}</td>
+                        <td className="py-2 px-2 text-center">{stats.count}</td>
+                        <td className="py-2 px-2 text-center">{stats.attempts}</td>
+                        <td className="py-2 px-2 text-center">{stats.correct}</td>
+                        <td className="py-2 px-2 text-center">{stats.incorrect}</td>
+                        <td className="py-2 px-2 text-center">{getAccuracyBadge(stats.accuracy)}</td>
+                        <td className="py-2 px-2 text-center">
+                          <button className="text-blue-600 hover:underline flex items-center gap-1" onClick={() => setViewModalQuestion(q)}>
+                            <Eye className="w-4 h-4" /> View
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* View Modal */}
+      <QuestionViewModal
+        open={!!viewModalQuestion}
+        onClose={() => setViewModalQuestion(null)}
+        question={viewModalQuestion}
+        studentResponses={studentResponses}
+      />
+    </div>
+  );
 };
 
 export default IndividualQuestions;

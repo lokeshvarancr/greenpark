@@ -1,323 +1,474 @@
 import React, { useState, useMemo } from "react";
-import FilterRow from "@/components/ui/FilterRow";
-import { format, subDays } from "date-fns";
+import { ChevronDown, Download, FileText } from "lucide-react";
 
-// Dummy Data
-const TESTS = ["Unit Test 1", "Unit Test 2", "Midterm", "Final"];
-const SUBJECTS = ["Physics", "Chemistry", "Biology"];
-const SECTIONS = ["11A", "11B", "11C", "11D", "11E"];
-
-type Student = {
-  name: string;
-  marks: number;
-  section: string;
-  subject: string;
-  accuracy: number;
-  incorrect: number;
-};
-
-const STUDENTS: Student[] = [
-  { name: "Aarav Mehta", marks: 95, section: "11A", subject: "Physics", accuracy: 98, incorrect: 1 },
-  { name: "Priya Sharma", marks: 92, section: "11B", subject: "Chemistry", accuracy: 95, incorrect: 2 },
-  { name: "Rohan Patel", marks: 38, section: "11C", subject: "Biology", accuracy: 35, incorrect: 8 },
-  { name: "Simran Kaur", marks: 36, section: "11A", subject: "Physics", accuracy: 39, incorrect: 7 },
-  { name: "Ishaan Gupta", marks: 91, section: "11D", subject: "Biology", accuracy: 92, incorrect: 1 },
-  { name: "Neha Verma", marks: 39, section: "11B", subject: "Chemistry", accuracy: 37, incorrect: 9 },
-  { name: "Rahul Singh", marks: 93, section: "11E", subject: "Physics", accuracy: 96, incorrect: 1 },
-  { name: "Aditi Rao", marks: 37, section: "11C", subject: "Biology", accuracy: 38, incorrect: 6 },
-  // ...more dummy students
+const CLASSES = ["11A", "11B", "11C", "11D", "11E", "11F"];
+const TEST_TYPES = ["Weekly", "Cumulative", "Grand Test"];
+const BATCHES = ["Batch A", "Batch B"];
+const CUMULATIVE_PAIRS = ["Physics + Botany", "Chemistry + Zoology"];
+const SECTION_OPTIONS = [
+  ...Array.from({ length: 10 }, (_, i) => `11${String.fromCharCode(65 + i)}`),
+  ...Array.from({ length: 10 }, (_, i) => `12${String.fromCharCode(65 + i)}`),
 ];
+const MONTHS = (() => {
+  const months = [];
+  const start = new Date(2025, 5, 1); // June 2025
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+    months.push({
+      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      label: d.toLocaleString("default", { month: "long", year: "numeric" }),
+      year: d.getFullYear(),
+      month: d.getMonth(),
+    });
+  }
+  return months;
+})();
+function getWeeksInMonth(year: number, month: number) {
+  const weeks: Date[][] = [];
+  let date = new Date(year, month, 1);
+  let week: Date[] = [];
+  while (date.getMonth() === month) {
+    week.push(new Date(date));
+    if (date.getDay() === 6) {
+      weeks.push(week);
+      week = [];
+    }
+    date.setDate(date.getDate() + 1);
+  }
+  if (week.length) weeks.push(week);
+  return weeks;
+}
+function getSubjectsForWeek(week: Date[]) {
+  const dayToSubject: Record<number, string> = { 3: "Physics", 4: "Chemistry", 5: "Botany", 6: "Zoology" };
+  return week.filter((d: Date) => dayToSubject[d.getDay()]).map((d: Date) => ({ day: d, subject: dayToSubject[d.getDay()] }));
+}
 
-const HighLowPerformers: React.FC = () => {
-  // Performance Overview filters
-  const [perfSubject, setPerfSubject] = useState<string>("");
-  const [perfSection, setPerfSection] = useState<string>("");
-  // Modal state (unused for this dashboard)
-  // Date range and pagination
-  const [dateRange, setDateRange] = useState({
-    from: subDays(new Date(), 29),
-    to: new Date(),
-  });
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
+const Performancetab: React.FC = () => {
+  // Top bar filters
+  const [testType, setTestType] = useState<string>(TEST_TYPES[0]);
+  const [selectedMonth, setSelectedMonth] = useState<string>(MONTHS[0].value);
+  const [selectedTest1Idx, setSelectedTest1Idx] = useState<number>(0);
+  const [selectedTest2Idx, setSelectedTest2Idx] = useState<number>(1);
+  const [selectedGrandTest1, setSelectedGrandTest1] = useState<string>("Grand Test 1");
+  const [selectedGrandTest2, setSelectedGrandTest2] = useState<string>("Grand Test 2");
+  const [selectedSections, setSelectedSections] = useState<string[]>([...SECTION_OPTIONS]);
+  const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
+  const [compareError, setCompareError] = useState<string>("");
 
-  // Simulate global filter state (Institution, Batch, etc.)
-  // For now, only class, subject, and date are used, as dummy data lacks institution/batch
+  const selectedMonthObj = MONTHS.find(m => m.value === selectedMonth);
+  const weeks = useMemo(() => selectedMonthObj ? getWeeksInMonth(selectedMonthObj.year, selectedMonthObj.month) : [], [selectedMonthObj]);
+  const weekOptions = weeks.map((_, i) => `Week ${i + 1} (Test ${i + 1})`);
+  const cumulativeTestOptions = ["Cumulative 1", "Cumulative 2"];
+  const grandTestNames = ["Grand Test 1", "Grand Test 2"];
 
-  // Filter students by all global filters
-  const filteredStudents = useMemo(() => {
-    let filtered = STUDENTS;
-    if (perfSection) filtered = filtered.filter(s => s.section === perfSection);
-    if (perfSubject) filtered = filtered.filter(s => s.subject === perfSubject);
-    // Date range filter would go here if data had dates
-    return filtered;
-  }, [perfSection, perfSubject, dateRange]);
+  // Helper for status arrow
+  const getStatusSymbol = (status: string) => {
+    if (status === "+") return <span className="text-green-600 font-bold">+ <span className="sr-only">Improved</span></span>;
+    if (status === "-") return <span className="text-red-600 font-bold">− <span className="sr-only">Declined</span></span>;
+    return <span className="text-gray-500 font-bold">0 <span className="sr-only">No Change</span></span>;
+  };
 
-  // Metric calculations
-  const avgScore = filteredStudents.length ? (filteredStudents.reduce((a, b) => a + b.marks, 0) / filteredStudents.length).toFixed(1) : "-";
-  const avgAccuracy = filteredStudents.length ? (filteredStudents.reduce((a, b) => a + b.accuracy, 0) / filteredStudents.length).toFixed(1) : "-";
-  const avgAttempt = filteredStudents.length ? (filteredStudents.reduce((a, b) => a + (b.marks + b.incorrect), 0) / (filteredStudents.length * 100) * 100).toFixed(1) : "-";
-  const sorted = [...filteredStudents].sort((a, b) => b.marks - a.marks);
-  const top10 = sorted.slice(0, Math.ceil(filteredStudents.length * 0.1));
-  const bottom10 = sorted.slice(-Math.ceil(filteredStudents.length * 0.1));
-  const top10Avg = top10.length ? (top10.reduce((a, b) => a + b.marks, 0) / top10.length).toFixed(1) : "-";
-  const bottom10Avg = bottom10.length ? (bottom10.reduce((a, b) => a + b.marks, 0) / bottom10.length).toFixed(1) : "-";
+  // Controlled interactivity: Only update on Compare
+  const [comparisonData, setComparisonData] = useState<any[]>([]);
+  const handleCompare = () => {
+    setCompareError("");
+    // Validate
+    if (testType === "Grand Test" && (selectedGrandTest1 === selectedGrandTest2)) {
+      setCompareError("Please select two different Grand Tests.");
+      setShowComparison(false);
+      return;
+    }
+    if ((testType === "Weekly" || testType === "Cumulative") && (selectedTest1Idx === selectedTest2Idx)) {
+      setCompareError("Please select two different tests.");
+      setShowComparison(false);
+      return;
+    }
+    if (selectedSections.length === 0) {
+      setCompareError("Please select at least one section.");
+      setShowComparison(false);
+      return;
+    }
+    // Simulate data fetch and filter
+    setShowComparison(true);
+    setComparisonData(excelData.filter(row => selectedSections.includes(row.class)));
+  };
 
-  // Attempt Rate vs Accuracy by Test (X-axis: TESTS)
-  const testMetrics = TESTS.map(test => {
-    return {
-      test,
-      attempt: avgAttempt === "-" ? 0 : Number(avgAttempt),
-      accuracy: avgAccuracy === "-" ? 0 : Number(avgAccuracy)
-    };
-  });
+  // Table row generator for comparison view
+  const renderComparisonRow = (row: any) => {
+    // For demo, use mark1/mark2 as Test 1/Test 2
+    const getDelta = (a: number, b: number) => a === b ? "0" : a > b ? "+" : "-";
+    return (
+      <tr key={row.sno} className="hover:bg-blue-50 transition-all duration-300">
+        <td className="border px-2 py-1 text-center rounded-l-lg">{row.sno}</td>
+        <td className="border px-2 py-1 text-center">{row.class}</td>
+        <td className="border px-2 py-1">{row.name}</td>
+        {/* Physics */}
+        <td className="border px-2 py-1 text-center">{row.physics.mark1}</td>
+        <td className="border px-2 py-1 text-center">{row.physics.mark2}</td>
+        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.physics.mark2, row.physics.mark1))}</td>
+        <td className="border px-2 py-1 text-center">{row.physics.rank1}</td>
+        <td className="border px-2 py-1 text-center">{row.physics.rank2}</td>
+        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.physics.rank1, row.physics.rank2))}</td>
+        {/* Chemistry */}
+        <td className="border px-2 py-1 text-center">{row.chemistry.mark1}</td>
+        <td className="border px-2 py-1 text-center">{row.chemistry.mark2}</td>
+        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.chemistry.mark2, row.chemistry.mark1))}</td>
+        <td className="border px-2 py-1 text-center">{row.chemistry.rank1}</td>
+        <td className="border px-2 py-1 text-center">{row.chemistry.rank2}</td>
+        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.chemistry.rank1, row.chemistry.rank2))}</td>
+        {/* Botany */}
+        <td className="border px-2 py-1 text-center">{row.botany.mark1}</td>
+        <td className="border px-2 py-1 text-center">{row.botany.mark2}</td>
+        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.botany.mark2, row.botany.mark1))}</td>
+        <td className="border px-2 py-1 text-center">{row.botany.rank1}</td>
+        <td className="border px-2 py-1 text-center">{row.botany.rank2}</td>
+        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.botany.rank1, row.botany.rank2))}</td>
+        {/* Zoology */}
+        <td className="border px-2 py-1 text-center">{row.zoology.mark1}</td>
+        <td className="border px-2 py-1 text-center">{row.zoology.mark2}</td>
+        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.zoology.mark2, row.zoology.mark1))}</td>
+        <td className="border px-2 py-1 text-center">{row.zoology.rank1}</td>
+        <td className="border px-2 py-1 text-center">{row.zoology.rank2}</td>
+        <td className="border px-2 py-1 text-center rounded-r-lg">{getStatusSymbol(getDelta(row.zoology.rank1, row.zoology.rank2))}</td>
+      </tr>
+    );
+  };
 
-  // High performers: top 10 by score
-  const highPerformers = sorted.slice(0, 10);
-  const totalPages = Math.ceil(highPerformers.length / pageSize);
-  const paged = highPerformers.slice((page-1)*pageSize, page*pageSize);
+  // Subject summary counts after comparison
+  const getSubjectSummary = () => {
+    const summary = ["physics", "chemistry", "botany", "zoology"].map(subject => {
+      let improved = 0, declined = 0, same = 0;
+      for (const row of comparisonData) {
+        const t1 = row[subject].mark1;
+        const t2 = row[subject].mark2;
+        if (t2 > t1) improved++;
+        else if (t2 < t1) declined++;
+        else same++;
+      }
+      return {
+        subject: subject.charAt(0).toUpperCase() + subject.slice(1),
+        improved,
+        declined,
+        same
+      };
+    });
+    return summary;
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
-      {/* Filter Row */}
-      <div className="w-full max-w-6xl mx-auto pt-8 pb-2">
-        <FilterRow
-          dateFrom={format(dateRange.from, "yyyy-MM-dd")}
-          dateTo={format(dateRange.to, "yyyy-MM-dd")}
-          onDateFromChange={val => setDateRange(r => ({ ...r, from: new Date(val) }))}
-          onDateToChange={val => setDateRange(r => ({ ...r, to: new Date(val) }))}
-          institution={"All"}
-          onInstitutionChange={() => {}}
-          institutions={[]}
-          batch={"All"}
-          onBatchChange={() => {}}
-          batches={[]}
-          clazz={perfSection}
-          onClassChange={setPerfSection}
-          classes={SECTIONS}
-          subject={perfSubject}
-          onSubjectChange={setPerfSubject}
-          subjects={SUBJECTS}
-          examType="All"
-          onExamTypeChange={() => {}}
-        />
-      </div>
-
-      {/* Metric Cards */}
-      <div className="w-full max-w-6xl mx-auto mb-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6">
-        <div className="rounded-xl shadow border p-6 flex flex-col items-center bg-white min-w-[150px]">
-          <span className="text-3xl font-extrabold text-blue-700 mb-1">{avgScore}</span>
-          <span className="text-sm font-semibold text-slate-600">Average Score</span>
-        </div>
-        <div className="rounded-xl shadow border p-6 flex flex-col items-center bg-white min-w-[150px]">
-          <span className="text-3xl font-extrabold text-green-700 mb-1">{avgAccuracy}</span>
-          <span className="text-sm font-semibold text-slate-600">Average Accuracy (%)</span>
-        </div>
-        <div className="rounded-xl shadow border p-6 flex flex-col items-center bg-white min-w-[150px]">
-          <span className="text-3xl font-extrabold text-orange-600 mb-1">{avgAttempt}</span>
-          <span className="text-sm font-semibold text-slate-600">Average Attempt Rate (%)</span>
-        </div>
-        <div className="rounded-xl shadow border p-6 flex flex-col items-center bg-white min-w-[150px]">
-          <span className="text-3xl font-extrabold text-blue-900 mb-1">{top10Avg}</span>
-          <span className="text-sm font-semibold text-slate-600">Top 10% Avg Score</span>
-        </div>
-        <div className="rounded-xl shadow border p-6 flex flex-col items-center bg-white min-w-[150px]">
-          <span className="text-3xl font-extrabold text-red-700 mb-1">{bottom10Avg}</span>
-          <span className="text-sm font-semibold text-slate-600">Bottom 10% Avg Score</span>
-        </div>
-      </div>
-
-      {/* Attempt Rate vs Accuracy Graph + Histogram Row */}
-      <div className="w-full max-w-6xl mx-auto mb-8 flex flex-col md:flex-row gap-8">
-        {/* Attempt Rate vs Accuracy Graph */}
-        <div className="flex-1 bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center min-w-[320px]">
-          <h3 className="text-lg font-bold mb-4 text-slate-800">Attempt Rate vs Accuracy %</h3>
-          <div className="relative w-full max-w-xl h-56">
-            {/* Simple dual line chart, X: TESTS, Y: 0-100% */}
-            <svg viewBox="0 0 320 180" width="100%" height="180" className="w-full h-44">
-              {/* Y axis grid */}
-              {[0, 0.25, 0.5, 0.75, 1].map((v, i) => (
-                <line key={i} x1="40" x2="300" y1={30 + v*120} y2={30 + v*120} stroke="#e5e7eb" strokeDasharray="2 2" strokeWidth="1" />
-              ))}
-              {/* Y axis labels */}
-              {[0, 25, 50, 75, 100].map((v, i) => (
-                <text key={i} x="20" y={150 - v*1.2 + 30} fontSize="13" fontWeight="bold" fill="#64748b" textAnchor="end">{v}%</text>
-              ))}
-              {/* X axis labels */}
-              {testMetrics.map((tm, i) => (
-                <text key={tm.test} x={60 + i*60} y={170} fontSize="15" fontWeight="bold" fill="#2563eb" textAnchor="middle">{tm.test}</text>
-              ))}
-              {/* Axis titles */}
-              <text x="10" y="20" fontSize="13" fontWeight="bold" fill="#64748b" textAnchor="start">%</text>
-              <text x="160" y="178" fontSize="13" fontWeight="bold" fill="#64748b" textAnchor="middle">Test</text>
-              {/* Attempt Rate Line */}
-              <polyline
-                fill="none"
-                stroke="#2563eb"
-                strokeWidth="3.5"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                points={testMetrics.map((tm, i) => `${60 + i*60},${150 - tm.attempt*1.2 + 30}`).join(' ')}
-              />
-              {/* Accuracy Line */}
-              <polyline
-                fill="none"
-                stroke="#f59e42"
-                strokeWidth="3.5"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                points={testMetrics.map((tm, i) => `${60 + i*60},${150 - tm.accuracy*1.2 + 30}`).join(' ')}
-              />
-              {/* Dots and tooltips */}
-              {testMetrics.map((tm, i) => (
-                <g key={tm.test}>
-                  <circle
-                    cx={60 + i*60}
-                    cy={150 - tm.attempt*1.2 + 30}
-                    r={7}
-                    fill="#2563eb"
-                  />
-                  <circle
-                    cx={60 + i*60}
-                    cy={150 - tm.accuracy*1.2 + 30}
-                    r={7}
-                    fill="#f59e42"
-                  />
-                </g>
-              ))}
-            </svg>
-            {/* Legend */}
-            <div className="flex gap-8 mt-4 justify-center">
-              <span className="flex items-center gap-2 text-base font-semibold"><span className="inline-block w-5 h-2 rounded bg-[#2563eb]" />Attempt Rate</span>
-              <span className="flex items-center gap-2 text-base font-semibold"><span className="inline-block w-5 h-2 rounded bg-[#f59e42]" />Accuracy</span>
-            </div>
+    <div className="h-screen min-h-0 flex flex-col bg-gray-50">
+      {/* Top Bar Filters */}
+      <div className="sticky top-0 z-30 bg-white shadow flex flex-wrap items-center justify-between gap-4 px-4 py-4 rounded-b-2xl border-b">
+        <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
+          {/* Test Type Dropdown */}
+          <div className="relative min-w-[140px]">
+            <label className="block text-xs font-semibold mb-1 text-gray-600">Test Type</label>
+            <select
+              className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition w-full"
+              value={testType}
+              onChange={e => {
+                setTestType(e.target.value);
+                setSelectedMonth(MONTHS[0].value);
+                setSelectedTest1Idx(0);
+                setSelectedTest2Idx(1);
+                setSelectedGrandTest1("Grand Test 1");
+                setSelectedGrandTest2("Grand Test 2");
+                setShowComparison(false);
+                setCompareError("");
+              }}
+            >
+              {TEST_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
+            </select>
           </div>
-        </div>
-        {/* HISTOGRAM BAR CHART */}
-        <div className="flex-1 bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center min-w-[320px]">
-          <h3 className="text-lg font-bold mb-4 text-slate-800">
-            {`Score Distribution — ${perfSubject ? perfSubject : 'All Subjects'}`}
-          </h3>
-          <HistogramChart students={filteredStudents} subject={perfSubject} />
-        </div>
-      </div>
 
-      {/* High Performance Student List */}
-      <div className="bg-white rounded-xl shadow p-6">
-        <h2 className="text-lg font-bold mb-4">Top Performing Students</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-[420px] w-full text-sm rounded-xl overflow-hidden border border-slate-100 mb-2">
-            <thead>
-              <tr className="bg-slate-50">
-                <th className="py-3 px-4 font-bold text-slate-700 text-left">Name</th>
-                <th className="py-3 px-4 font-bold text-slate-700 text-center">Class</th>
-                <th className="py-3 px-4 font-bold text-slate-700 text-center">Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paged.length === 0 && (
-                <tr><td colSpan={3} className="text-center text-gray-400 py-4">No data</td></tr>
-              )}
-              {paged.map((s, idx) => (
-                <tr key={s.name + s.section + s.subject} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
-                  <td className="py-3 px-4 font-medium text-slate-900">{s.name}</td>
-                  <td className="py-3 px-4 text-center">{s.section}</td>
-                  <td className="py-3 px-4 text-center font-mono">{s.marks}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex gap-2 justify-end items-center mt-2">
-              <button disabled={page === 1} onClick={() => setPage(page-1)} className="px-3 py-1 rounded bg-slate-100 text-slate-700 font-semibold disabled:opacity-50">Prev</button>
-              <span className="text-sm font-semibold">Page {page} of {totalPages}</span>
-              <button disabled={page === totalPages} onClick={() => setPage(page+1)} className="px-3 py-1 rounded bg-slate-100 text-slate-700 font-semibold disabled:opacity-50">Next</button>
+          {/* --- Weekly --- */}
+          {testType === "Weekly" && (
+            <>
+              {/* Month Dropdown */}
+              <div className="relative min-w-[160px]">
+                <label className="block text-xs font-semibold mb-1 text-gray-600">Month</label>
+                <select
+                  className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition w-full"
+                  value={selectedMonth}
+                  onChange={e => {
+                    setSelectedMonth(e.target.value);
+                    setSelectedTest1Idx(0);
+                    setSelectedTest2Idx(1);
+                    setShowComparison(false);
+                    setCompareError("");
+                  }}
+                >
+                  {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                </select>
+              </div>
+              {/* Test 1 Dropdown */}
+              <div className="relative min-w-[140px]">
+                <label className="block text-xs font-semibold mb-1 text-gray-600">Test 1</label>
+                <select
+                  className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition w-full"
+                  value={selectedTest1Idx}
+                  onChange={e => { setSelectedTest1Idx(Number(e.target.value)); setShowComparison(false); setCompareError(""); }}
+                >
+                  {weekOptions.map((label, i) => (
+                    <option key={i} value={i}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Test 2 Dropdown */}
+              <div className="relative min-w-[140px]">
+                <label className="block text-xs font-semibold mb-1 text-gray-600">Test 2</label>
+                <select
+                  className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition w-full"
+                  value={selectedTest2Idx}
+                  onChange={e => { setSelectedTest2Idx(Number(e.target.value)); setShowComparison(false); setCompareError(""); }}
+                >
+                  {weekOptions.map((label, i) => (
+                    <option key={i} value={i}>{label}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* --- Cumulative --- */}
+          {testType === "Cumulative" && (
+            <>
+              {/* Month Dropdown */}
+              <div className="relative min-w-[160px]">
+                <label className="block text-xs font-semibold mb-1 text-gray-600">Month</label>
+                <select
+                  className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition w-full"
+                  value={selectedMonth}
+                  onChange={e => { setSelectedMonth(e.target.value); setSelectedTest1Idx(0); setSelectedTest2Idx(1); setShowComparison(false); setCompareError(""); }}
+                >
+                  {MONTHS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                </select>
+              </div>
+              {/* Test 1 Dropdown */}
+              <div className="relative min-w-[140px]">
+                <label className="block text-xs font-semibold mb-1 text-gray-600">Test 1</label>
+                <select
+                  className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition w-full"
+                  value={selectedTest1Idx}
+                  onChange={e => { setSelectedTest1Idx(Number(e.target.value)); setShowComparison(false); setCompareError(""); }}
+                >
+                  {cumulativeTestOptions.map((label, i) => (
+                    <option key={i} value={i}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Test 2 Dropdown */}
+              <div className="relative min-w-[140px]">
+                <label className="block text-xs font-semibold mb-1 text-gray-600">Test 2</label>
+                <select
+                  className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition w-full"
+                  value={selectedTest2Idx}
+                  onChange={e => { setSelectedTest2Idx(Number(e.target.value)); setShowComparison(false); setCompareError(""); }}
+                >
+                  {cumulativeTestOptions.map((label, i) => (
+                    <option key={i} value={i}>{label}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* --- Grand Test --- */}
+          {testType === "Grand Test" && (
+            <>
+              {/* Test 1 Dropdown */}
+              <div className="relative min-w-[180px]">
+                <label className="block text-xs font-semibold mb-1 text-gray-600">Test 1</label>
+                <select
+                  className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition w-full"
+                  value={selectedGrandTest1}
+                  onChange={e => { setSelectedGrandTest1(e.target.value); setShowComparison(false); setCompareError(""); }}
+                >
+                  {grandTestNames.map((name: string) => <option key={name} value={name}>{name}</option>)}
+                </select>
+              </div>
+              {/* Test 2 Dropdown */}
+              <div className="relative min-w-[180px]">
+                <label className="block text-xs font-semibold mb-1 text-gray-600">Test 2</label>
+                <select
+                  className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 min-w-[120px] bg-white shadow-sm hover:border-blue-400 transition w-full"
+                  value={selectedGrandTest2}
+                  onChange={e => { setSelectedGrandTest2(e.target.value); setShowComparison(false); setCompareError(""); }}
+                >
+                  {grandTestNames.map((name: string) => <option key={name} value={name}>{name}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+        </div>
+        {/* Section Dropdown (multi-select) - always shown */}
+        <div className="relative min-w-[220px]">
+          <label className="block text-xs font-semibold mb-1 text-gray-600">Section</label>
+          <button
+            type="button"
+            className="appearance-none border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-full flex justify-between items-center bg-white hover:bg-blue-50 transition shadow-sm"
+            onClick={() => setSectionDropdownOpen(v => !v)}
+          >
+            <span className="truncate text-left">{selectedSections.length === 0 ? "None" : selectedSections.length === SECTION_OPTIONS.length ? "All Sections" : selectedSections.join(", ")}</span>
+          </button>
+          {sectionDropdownOpen && (
+            <div className="absolute right-0 mt-2 w-72 max-h-72 overflow-y-auto bg-white border rounded-xl shadow-lg z-50 p-2 animate-fadeIn">
+              <div className="flex items-center gap-2 mb-2 px-2">
+                <input
+                  type="checkbox"
+                  checked={selectedSections.length === SECTION_OPTIONS.length}
+                  onChange={() => setSelectedSections(selectedSections.length === SECTION_OPTIONS.length ? [] : [...SECTION_OPTIONS])}
+                  className="accent-blue-600 w-4 h-4 rounded"
+                  id="select-all-sections"
+                />
+                <label htmlFor="select-all-sections" className="text-sm font-medium cursor-pointer">Select All</label>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                {SECTION_OPTIONS.map(section => (
+                  <label key={section} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-blue-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedSections.includes(section)}
+                      onChange={() => setSelectedSections(prev => prev.includes(section) ? prev.filter(s => s !== section) : [...prev, section])}
+                      className="accent-blue-600 w-4 h-4 rounded"
+                    />
+                    <span className="text-sm font-medium">{section}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           )}
         </div>
+        {/* Export Buttons */}
+        <div className="flex gap-2 ml-auto">
+          <button className="flex items-center gap-1 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow" onClick={() => alert('Export as CSV (demo only)')}> <Download className="w-4 h-4" /> CSV </button>
+          <button className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-800 transition shadow" onClick={() => alert('Export as PDF (demo only)')}> <FileText className="w-4 h-4" /> PDF </button>
+        </div>
+      </div>
+      {/* Compare Button */}
+      <div className="flex justify-center mt-4">
+        <button
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-xl shadow transition-all duration-200 disabled:opacity-50"
+          onClick={handleCompare}
+          disabled={testType === "Grand Test" ? selectedGrandTest1 === selectedGrandTest2 : selectedTest1Idx === selectedTest2Idx}
+        >
+          Compare
+        </button>
+      </div>
+      {/* Error Message */}
+      {compareError && <div className="text-center text-red-600 font-semibold mt-2 animate-fadeIn">{compareError}</div>}
+      {/* Add your performance tab content below the filter bar */}
+      <div className="mt-8">
+        {showComparison ? (
+          <>
+            <h2 className="text-xl font-bold mb-4">Performance Comparison</h2>
+            <div className="text-gray-500 mb-6">(Comparison view updates only after clicking Compare)</div>
+            <div className="overflow-x-auto transition-all duration-300">
+              <table className="min-w-[1200px] w-full border text-xs bg-white rounded-xl shadow">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border px-2 py-1">S.No</th>
+                    <th className="border px-2 py-1">Class</th>
+                    <th className="border px-2 py-1">Student Name</th>
+                    {/* Physics */}
+                    <th className="border px-2 py-1" colSpan={3}>Physics</th>
+                    <th className="border px-2 py-1" colSpan={3}>Physics Rank</th>
+                    {/* Chemistry */}
+                    <th className="border px-2 py-1" colSpan={3}>Chemistry</th>
+                    <th className="border px-2 py-1" colSpan={3}>Chemistry Rank</th>
+                    {/* Botany */}
+                    <th className="border px-2 py-1" colSpan={3}>Botany</th>
+                    <th className="border px-2 py-1" colSpan={3}>Botany Rank</th>
+                    {/* Zoology */}
+                    <th className="border px-2 py-1" colSpan={3}>Zoology</th>
+                    <th className="border px-2 py-1" colSpan={3}>Zoology Rank</th>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <th className="border px-2 py-1" colSpan={3}></th>
+                    {/* Physics */}
+                    <th className="border px-2 py-1">Test 1</th>
+                    <th className="border px-2 py-1">Test 2</th>
+                    <th className="border px-2 py-1">Δ</th>
+                    <th className="border px-2 py-1">Test 1</th>
+                    <th className="border px-2 py-1">Test 2</th>
+                    <th className="border px-2 py-1">Δ</th>
+                    {/* Chemistry */}
+                    <th className="border px-2 py-1">Test 1</th>
+                    <th className="border px-2 py-1">Test 2</th>
+                    <th className="border px-2 py-1">Δ</th>
+                    <th className="border px-2 py-1">Test 1</th>
+                    <th className="border px-2 py-1">Test 2</th>
+                    <th className="border px-2 py-1">Δ</th>
+                    {/* Botany */}
+                    <th className="border px-2 py-1">Test 1</th>
+                    <th className="border px-2 py-1">Test 2</th>
+                    <th className="border px-2 py-1">Δ</th>
+                    <th className="border px-2 py-1">Test 1</th>
+                    <th className="border px-2 py-1">Test 2</th>
+                    <th className="border px-2 py-1">Δ</th>
+                    {/* Zoology */}
+                    <th className="border px-2 py-1">Test 1</th>
+                    <th className="border px-2 py-1">Test 2</th>
+                    <th className="border px-2 py-1">Δ</th>
+                    <th className="border px-2 py-1">Test 1</th>
+                    <th className="border px-2 py-1">Test 2</th>
+                    <th className="border px-2 py-1">Δ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparisonData.map(renderComparisonRow)}
+                </tbody>
+              </table>
+            </div>
+            {/* Subject Summary Panel */}
+            <div className="mt-8 animate-fadeIn">
+              <h3 className="text-lg font-semibold mb-3">+ / – / 0 Count Summary per Subject</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full max-w-2xl mx-auto bg-white rounded-xl shadow border text-sm">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="px-4 py-2 text-left rounded-tl-xl">Subject</th>
+                      <th className="px-4 py-2 text-center"> <span className='text-green-600 font-bold'>+ Improved</span> </th>
+                      <th className="px-4 py-2 text-center"> <span className='text-red-600 font-bold'>– Declined</span> </th>
+                      <th className="px-4 py-2 text-center rounded-tr-xl"> <span className='text-gray-500 font-bold'>0 No Change</span> </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getSubjectSummary().map(s => (
+                      <tr key={s.subject} className="even:bg-gray-50">
+                        <td className="px-4 py-2 font-medium">{s.subject}</td>
+                        <td className="px-4 py-2 text-center"><span className="inline-block min-w-[2.5em] rounded-full bg-green-100 text-green-700 font-semibold px-2 py-1">{s.improved}</span></td>
+                        <td className="px-4 py-2 text-center"><span className="inline-block min-w-[2.5em] rounded-full bg-red-100 text-red-700 font-semibold px-2 py-1">{s.declined}</span></td>
+                        <td className="px-4 py-2 text-center"><span className="inline-block min-w-[2.5em] rounded-full bg-gray-200 text-gray-700 font-semibold px-2 py-1">{s.same}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="text-center text-gray-400 text-lg font-semibold animate-fadeIn">Select tests and click Compare to view performance comparison.</div>
+        )}
       </div>
     </div>
   );
 };
 
-// HISTOGRAM COMPONENT
-const HistogramChart: React.FC<{ students: Student[]; subject: string }> = ({ students, subject }) => {
-  // Determine score range and buckets
-  let bucketSize = 60, buckets = 12;
-  if (subject && subject !== "") {
-    bucketSize = 30;
-    buckets = 6;
-  }
-  // Prepare scores
-  let scores: number[] = [];
-  if (!subject || subject === "") {
-    // All Subjects: sum all subject scores per student
-    // For demo, sum all available marks for each student (since dummy data is per subject)
-    // In real data, would sum all subjects per student
-    // Here, group by name and sum marks
-    const nameMap: { [name: string]: number } = {};
-    students.forEach(s => {
-      nameMap[s.name] = (nameMap[s.name] || 0) + s.marks;
-    });
-    scores = Object.values(nameMap);
-  } else {
-    // Single subject: just use marks for that subject
-    scores = students.filter(s => s.subject === subject).map(s => s.marks);
-  }
-  // Bucketize
-  const bucketCounts = Array(buckets).fill(0);
-  scores.forEach(score => {
-    let idx = Math.floor(score / bucketSize);
-    if (idx >= buckets) idx = buckets - 1;
-    bucketCounts[idx]++;
-  });
-  // Tooltip state
-  const [hoverIdx, setHoverIdx] = React.useState(-1);
-  // Responsive SVG
-  const chartW = 320, chartH = 180, barW = 32, gap = 12, baseY = 150, maxBarH = 120;
-  const maxCount = Math.max(...bucketCounts, 1);
-  return (
-    <div className="w-full flex flex-col items-center">
-      <svg viewBox={`0 0 ${chartW} ${chartH}`} width="100%" height="180" className="w-full h-44">
-        {/* X axis labels and bars */}
-        {bucketCounts.map((count, i) => {
-          const x = 24 + i * (barW + gap);
-          const h = (count / maxCount) * maxBarH;
-          return (
-            <g key={i}>
-              <rect
-                x={x}
-                y={baseY - h}
-                width={barW}
-                height={h}
-                rx={8}
-                fill={hoverIdx === i ? '#2563eb' : '#60a5fa'}
-                className="transition-all duration-200 cursor-pointer"
-                onMouseEnter={() => setHoverIdx(i)}
-                onMouseLeave={() => setHoverIdx(-1)}
-              />
-              {/* X label */}
-              <text x={x + barW/2} y={baseY + 18} fontSize="13" fontWeight="bold" fill="#64748b" textAnchor="middle">
-                {i * bucketSize + 1}-{(i+1) * bucketSize}
-              </text>
-              {/* Tooltip */}
-              {hoverIdx === i && (
-                <foreignObject x={x - 20} y={baseY - h - 40} width="72" height="32">
-                  <div className="pointer-events-none animate-fade-in rounded-xl shadow bg-white/95 border border-blue-100 px-3 py-1 text-xs text-blue-900 flex flex-col items-center min-w-[60px]">
-                    <div className="font-bold text-base mb-1">{count}</div>
-                    <div>students</div>
-                  </div>
-                </foreignObject>
-              )}
-            </g>
-          );
-        })}
-        {/* Y axis label */}
-        <text x="10" y="20" fontSize="13" fontWeight="bold" fill="#64748b" textAnchor="start">#</text>
-      </svg>
-    </div>
-  );
-};
+export default Performancetab;
 
-export default HighLowPerformers;
+const excelData = [
+  { sno: 1, class: "11A", name: "Vignesh A", physics: { mark1: 100, rank1: 2, mark2: 110, rank2: 2, status: "+" }, chemistry: { mark1: 170, rank1: 2, mark2: 160, rank2: 2, status: "-" }, botany: { mark1: 200, rank1: 3, mark2: 220, rank2: 2, status: "+" }, zoology: { mark1: 180, rank1: 5, mark2: 180, rank2: 3, status: "0" } },
+  { sno: 2, class: "11A", name: "Shalini K", physics: { mark1: 85, rank1: 4, mark2: 95, rank2: 3, status: "+" }, chemistry: { mark1: 140, rank1: 5, mark2: 150, rank2: 4, status: "+" }, botany: { mark1: 210, rank1: 2, mark2: 200, rank2: 4, status: "-" }, zoology: { mark1: 190, rank1: 4, mark2: 190, rank2: 2, status: "0" } },
+  { sno: 3, class: "11A", name: "Aravind S", physics: { mark1: 110, rank1: 1, mark2: 105, rank2: 2, status: "-" }, chemistry: { mark1: 160, rank1: 3, mark2: 170, rank2: 1, status: "+" }, botany: { mark1: 180, rank1: 5, mark2: 200, rank2: 3, status: "-" }, zoology: { mark1: 200, rank1: 1, mark2: 200, rank2: 2, status: "-" } },
+  { sno: 4, class: "11B", name: "Priya M", physics: { mark1: 90, rank1: 3, mark2: 90, rank2: 4, status: "0" }, chemistry: { mark1: 130, rank1: 6, mark2: 140, rank2: 5, status: "+" }, botany: { mark1: 190, rank1: 4, mark2: 180, rank2: 4, status: "-" }, zoology: { mark1: 170, rank1: 5, mark2: 180, rank2: 5, status: "+" } },
+  { sno: 5, class: "11B", name: "Naveen R", physics: { mark1: 70, rank1: 6, mark2: 80, rank2: 5, status: "+" }, chemistry: { mark1: 150, rank1: 4, mark2: 140, rank2: 6, status: "-" }, botany: { mark1: 230, rank1: 1, mark2: 220, rank2: 1, status: "+" }, zoology: { mark1: 160, rank1: 7, mark2: 170, rank2: 6, status: "+" } },
+  { sno: 6, class: "11B", name: "Lakshmi D", physics: { mark1: 95, rank1: 2, mark2: 95, rank2: 3, status: "-" }, chemistry: { mark1: 120, rank1: 7, mark2: 120, rank2: 7, status: "+" }, botany: { mark1: 200, rank1: 3, mark2: 190, rank2: 5, status: "-" }, zoology: { mark1: 175, rank1: 5, mark2: 175, rank2: 6, status: "+" } },
+  { sno: 7, class: "11C", name: "Santhosh P", physics: { mark1: 105, rank1: 1, mark2: 115, rank2: 1, status: "-" }, chemistry: { mark1: 180, rank1: 1, mark2: 180, rank2: 1, status: "0" }, botany: { mark1: 220, rank1: 2, mark2: 230, rank2: 2, status: "+" }, zoology: { mark1: 200, rank1: 1, mark2: 210, rank2: 6, status: "+" } },
+  { sno: 8, class: "11C", name: "Meena L", physics: { mark1: 60, rank1: 7, mark2: 65, rank2: 7, status: "-" }, chemistry: { mark1: 150, rank1: 2, mark2: 150, rank2: 2, status: "-" }, botany: { mark1: 150, rank1: 5, mark2: 160, rank2: 5, status: "-" }, zoology: { mark1: 140, rank1: 6, mark2: 150, rank2: 7, status: "-" } },
+  { sno: 9, class: "11C", name: "Harish T", physics: { mark1: 78, rank1: 5, mark2: 78, rank2: 6, status: "0" }, chemistry: { mark1: 135, rank1: 6, mark2: 125, rank2: 7, status: "-" }, botany: { mark1: 170, rank1: 4, mark2: 170, rank2: 6, status: "-" }, zoology: { mark1: 165, rank1: 6, mark2: 165, rank2: 6, status: "-" } },
+  { sno: 10, class: "11D", name: "Divya R", physics: { mark1: 88, rank1: 3, mark2: 95, rank2: 4, status: "+" }, chemistry: { mark1: 155, rank1: 4, mark2: 140, rank2: 6, status: "-" }, botany: { mark1: 180, rank1: 5, mark2: 190, rank2: 4, status: "-" }, zoology: { mark1: 180, rank1: 3, mark2: 190, rank2: 2, status: "+" } },
+  { sno: 11, class: "11D", name: "Arjun B", physics: { mark1: 72, rank1: 6, mark2: 70, rank2: 6, status: "-" }, chemistry: { mark1: 140, rank1: 5, mark2: 130, rank2: 7, status: "-" }, botany: { mark1: 160, rank1: 5, mark2: 170, rank2: 4, status: "-" }, zoology: { mark1: 175, rank1: 5, mark2: 165, rank2: 5, status: "-" } },
+  { sno: 12, class: "11D", name: "Sneha S", physics: { mark1: 92, rank1: 3, mark2: 96, rank2: 2, status: "+" }, chemistry: { mark1: 160, rank1: 3, mark2: 165, rank2: 2, status: "+" }, botany: { mark1: 190, rank1: 3, mark2: 200, rank2: 3, status: "+" }, zoology: { mark1: 185, rank1: 2, mark2: 190, rank2: 2, status: "+" } },
+];
