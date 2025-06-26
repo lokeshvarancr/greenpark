@@ -336,24 +336,6 @@ const IndividualQuestions: React.FC<{ studentResponses?: StudentResponse[] }> = 
   // --- Grand Test Names ---
   const grandTestNames = useMemo(() => Array.from({ length: 4 }, (_, i) => `Grand Test ${i + 1}`), [selectedMonth]);
 
-  // --- Class Checkbox Handler ---
-  const toggleClass = (cls: string) => {
-    setSelectedClasses(prev => prev.includes(cls) ? prev.filter(c => c !== cls) : [...prev, cls]);
-  };
-
-  // Section (Class) Dropdown logic
-  const toggleSection = (section: string) => {
-    setSelectedSections(prev =>
-      prev.includes(section)
-        ? prev.filter(s => s !== section)
-        : [...prev, section]
-    );
-  };
-  const allSectionsSelected = selectedSections.length === 20;
-  const handleSelectAllSections = () => {
-    setSelectedSections(allSectionsSelected ? [] : [...Array.from({ length: 20 }, (_, i) => `Section ${i + 1}`)]);
-  };
-
   // --- Filtered questions logic ---
   const questionsToShow = useMemo(() => {
     let questions: Question[] = [];

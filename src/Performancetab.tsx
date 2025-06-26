@@ -1,10 +1,7 @@
 import React, { useState, useMemo } from "react";
-import { ChevronDown, Download, FileText } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 
-const CLASSES = ["11A", "11B", "11C", "11D", "11E", "11F"];
 const TEST_TYPES = ["Weekly", "Cumulative", "Grand Test"];
-const BATCHES = ["Batch A", "Batch B"];
-const CUMULATIVE_PAIRS = ["Physics + Botany", "Chemistry + Zoology"];
 const SECTION_OPTIONS = [
   ...Array.from({ length: 10 }, (_, i) => `11${String.fromCharCode(65 + i)}`),
   ...Array.from({ length: 10 }, (_, i) => `12${String.fromCharCode(65 + i)}`),
@@ -37,10 +34,6 @@ function getWeeksInMonth(year: number, month: number) {
   }
   if (week.length) weeks.push(week);
   return weeks;
-}
-function getSubjectsForWeek(week: Date[]) {
-  const dayToSubject: Record<number, string> = { 3: "Physics", 4: "Chemistry", 5: "Botany", 6: "Zoology" };
-  return week.filter((d: Date) => dayToSubject[d.getDay()]).map((d: Date) => ({ day: d, subject: dayToSubject[d.getDay()] }));
 }
 
 const Performancetab: React.FC = () => {

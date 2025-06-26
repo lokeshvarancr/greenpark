@@ -16,7 +16,7 @@ import DashboardCard from "@/components/ui/DashboardCard";
 import FilterRow from "@/components/ui/FilterRow";
 import { faker } from "@faker-js/faker";
 import { format, isWithinInterval, subDays } from "date-fns";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart, PieChart, Pie, Cell, Legend } from 'recharts';
+import { Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart, PieChart, Pie, Cell, XAxis, YAxis } from 'recharts';
 
 /* -------------------------------------------------------------------------- */
 /*                               Dummy Dataset                                */
@@ -206,23 +206,6 @@ export default function Section1Dashboard() {
     ? ((readinessArr.filter((s) => s.projected >= 550).length / readinessArr.length) * 100).toFixed(1)
     : "0.0";
 
-  // --- Risk Breakdown Data ---
-  const riskBreakdown = useMemo(() => {
-    let high = 0, med = 0, low = 0;
-    (kpi.latestArr || []).forEach((s) => {
-      const acc = (s.correct / (s.attempted || 1)) * 100;
-      if (s.projected < 400 || acc < 30) high++;
-      else if ((s.projected <= 500 && s.projected >= 400) || (acc >= 30 && acc <= 50)) med++;
-      else low++;
-    });
-    const total = kpi.latestArr?.length || 1;
-    return [
-      { label: "High Risk", value: high, pct: ((high / total) * 100).toFixed(1), color: "#ef4444" },
-      { label: "Medium Risk", value: med, pct: ((med / total) * 100).toFixed(1), color: "#f59e42" },
-      { label: "Safe", value: low, pct: ((low / total) * 100).toFixed(1), color: "#10b981" },
-    ];
-  }, [kpi.latestArr]);
-
   // --- Top 10 Performer Dropdown State ---
   const batchOptions = ['A', 'B', 'C'];
   const classOptionsByBatch: Record<string, string[]> = {
@@ -390,7 +373,6 @@ export default function Section1Dashboard() {
                           else if ((s.projected <= 500 && s.projected >= 400) || (acc >= 30 && acc <= 50)) med++;
                           else low++;
                         });
-                        const total = kpi.latestArr?.length || 1;
                         return [
                           { name: 'High Risk', value: high, color: '#ef4444', insight: `${high} students have accuracy below 30% or score < 400` },
                           { name: 'Medium Risk', value: med, color: '#f59e42', insight: `${med} students are in the 400-500 range or 30-50% accuracy` },
@@ -441,6 +423,7 @@ export default function Section1Dashboard() {
                     const avg = (arr as number[]).reduce((a, b) => a + b, 0) / (arr as number[]).length;
                     if (avg > bestAvg) { bestAvg = avg; best = subj; }
                   });
+                  return best
                   return best || 'N/A';
                 })()}</span>
                 <span className="text-xs text-slate-500 mt-1">Most Improved Subject</span>
@@ -510,46 +493,44 @@ export default function Section1Dashboard() {
         </section>
         {/* Section: Performers */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          <DashboardCard title="Top 10 Performers" className="md:col-span-12" content={(() => {
-            return (
-              <div className="w-full">
-                <div className="flex flex-col sm:flex-row sm:items-end gap-2 mb-2">
-                  <div className="flex flex-col flex-1 min-w-[120px]">
-                    <label className="text-xs text-slate-500 font-semibold mb-1">Select Batch</label>
-                    <select className="px-2 py-1 text-xs rounded border border-slate-200 bg-white text-slate-700" value={topBatch} onChange={e => { setTopBatch(e.target.value); setTopClass('All'); }}>
-                      {batchOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  </div>
-                  <div className="flex flex-col flex-1 min-w-[120px]">
-                    <label className="text-xs text-slate-500 font-semibold mb-1">Select Class</label>
-                    <select className="px-2 py-1 text-xs rounded border border-slate-200 bg-white text-slate-700" value={topClass} onChange={e => setTopClass(e.target.value)}>
-                      {topClassOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  </div>
+          <DashboardCard title="Top 10 Performers" className="md:col-span-12" content={(() => (
+            <div className="w-full">
+              <div className="flex flex-col sm:flex-row sm:items-end gap-2 mb-2">
+                <div className="flex flex-col flex-1 min-w-[120px]">
+                  <label className="text-xs text-slate-500 font-semibold mb-1">Select Batch</label>
+                  <select className="px-2 py-1 text-xs rounded border border-slate-200 bg-white text-slate-700" value={topBatch} onChange={e => { setTopBatch(e.target.value); setTopClass('All'); }}>
+                    {batchOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
                 </div>
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="text-center border-b border-blue-100">
-                      <th className="py-1 text-blue-500">Rank</th>
-                      <th className="py-1 text-blue-500">Name</th>
-                      <th className="py-1 text-blue-500">Class</th>
-                      <th className="py-1 text-blue-500">Overall Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {top10Filtered.map((s, i) => (
-                      <tr key={i} className="border-b border-blue-50 hover:bg-blue-50 transition-all duration-200 text-center">
-                        <td className="py-1 text-blue-900 font-semibold">{i + 1}</td>
-                        <td className="py-1 text-blue-900">{s.studentName}</td>
-                        <td className="py-1 text-blue-900">{s.class}</td>
-                        <td className="py-1 font-medium text-blue-700">{s.projected}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="flex flex-col flex-1 min-w-[120px]">
+                  <label className="text-xs text-slate-500 font-semibold mb-1">Select Class</label>
+                  <select className="px-2 py-1 text-xs rounded border border-slate-200 bg-white text-slate-700" value={topClass} onChange={e => setTopClass(e.target.value)}>
+                    {topClassOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
               </div>
-            );
-          })()} />
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="text-center border-b border-blue-100">
+                    <th className="py-1 text-blue-500">Rank</th>
+                    <th className="py-1 text-blue-500">Name</th>
+                    <th className="py-1 text-blue-500">Class</th>
+                    <th className="py-1 text-blue-500">Overall Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {top10Filtered.map((s, i) => (
+                    <tr key={i} className="border-b border-blue-50 hover:bg-blue-50 transition-all duration-200 text-center">
+                      <td className="py-1 text-blue-900 font-semibold">{i + 1}</td>
+                      <td className="py-1 text-blue-900">{s.studentName}</td>
+                      <td className="py-1 text-blue-900">{s.class}</td>
+                      <td className="py-1 font-medium text-blue-700">{s.projected}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))()} />
         </div>
       </main>
     </div>

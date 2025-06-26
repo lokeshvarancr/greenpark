@@ -41,13 +41,12 @@ const allStudents = Array.from({ length: 100 }, (_, i) => {
 });
 
 type SmartMultiSelectDropdownProps = {
-  label: string;
   options: string[];
   selected: string[];
   setSelected: (opts: string[]) => void;
   className?: string;
 };
-const SmartMultiSelectDropdown: React.FC<SmartMultiSelectDropdownProps> = ({ label, options, selected, setSelected, className }) => {
+const SmartMultiSelectDropdown: React.FC<SmartMultiSelectDropdownProps> = ({ options, selected, setSelected, className }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -98,12 +97,11 @@ const SmartMultiSelectDropdown: React.FC<SmartMultiSelectDropdownProps> = ({ lab
 };
 
 const SmartSingleSelectDropdown: React.FC<{
-  label: string;
   options: string[];
   selected: string;
   setSelected: (opt: string) => void;
   className?: string;
-}> = ({ label, options, selected, setSelected, className }) => {
+}> = ({ options, selected, setSelected, className }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -190,7 +188,6 @@ const PerformanceInsights: React.FC = () => {
         <div className="flex flex-col min-w-[160px]">
           <span className="text-xs font-semibold mb-2 text-gray-600">Test Type</span>
           <SmartSingleSelectDropdown
-            label="Test Type"
             options={testTypeOptions}
             selected={testType}
             setSelected={(opt) => setTestType(opt as TestType)}
@@ -200,7 +197,6 @@ const PerformanceInsights: React.FC = () => {
         <div className="flex flex-col min-w-[160px]">
           <span className="text-xs font-semibold mb-2 text-gray-600">{testTypeToLabel[testType]}</span>
           <SmartMultiSelectDropdown
-            label={testTypeToLabel[testType]}
             options={testTypeToTests[testType]}
             selected={selectedTests}
             setSelected={setSelectedTests}
@@ -210,7 +206,6 @@ const PerformanceInsights: React.FC = () => {
         <div className="flex flex-col min-w-[160px]">
           <span className="text-xs font-semibold mb-2 text-gray-600">Month</span>
           <SmartMultiSelectDropdown
-            label="Month"
             options={months}
             selected={selectedMonths}
             setSelected={setSelectedMonths}
@@ -220,7 +215,6 @@ const PerformanceInsights: React.FC = () => {
         <div className="flex flex-col min-w-[160px]">
           <span className="text-xs font-semibold mb-2 text-gray-600">Week</span>
           <SmartMultiSelectDropdown
-            label="Week"
             options={weeks}
             selected={selectedWeeks}
             setSelected={setSelectedWeeks}
@@ -230,7 +224,6 @@ const PerformanceInsights: React.FC = () => {
         <div className="flex flex-col min-w-[160px]">
           <span className="text-xs font-semibold mb-2 text-gray-600">Campus</span>
           <SmartMultiSelectDropdown
-            label="Campus"
             options={campuses}
             selected={selectedCampuses}
             setSelected={setSelectedCampuses}
@@ -240,7 +233,6 @@ const PerformanceInsights: React.FC = () => {
         <div className="flex flex-col min-w-[160px]">
           <span className="text-xs font-semibold mb-2 text-gray-600">Section</span>
           <SmartMultiSelectDropdown
-            label="Section"
             options={sections}
             selected={selectedSections}
             setSelected={setSelectedSections}
