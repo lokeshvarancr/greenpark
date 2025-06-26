@@ -15,8 +15,6 @@ const CUMULATIVE_PAIRS: string[] = [
   "Physics + Botany",
   "Chemistry + Zoology"
 ];
-const TOTAL_STUDENTS = 2000;
-const SECTION_COUNT = 20;
 
 // Helper: Generate months from June 2025 to May 2026
 const MONTHS = (() => {
@@ -322,10 +320,9 @@ const IndividualQuestions: React.FC<{ studentResponses?: StudentResponse[] }> = 
   const [selectedBatch, setSelectedBatch] = useState<string>(BATCHES[0]);
   const [selectedPair, setSelectedPair] = useState<string>(CUMULATIVE_PAIRS[0]);
   const [selectedGrandTest, setSelectedGrandTest] = useState<string>("Grand Test 1");
-  const [selectedClasses, setSelectedClasses] = useState<string[]>([...CLASSES]);
-  const [selectedSections, setSelectedSections] = useState<string[]>([...SECTION_OPTIONS]);
   const [viewModalQuestion, setViewModalQuestion] = useState<Question | null>(null);
   const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false);
+  const [selectedSections, setSelectedSections] = useState<string[]>([...SECTION_OPTIONS]);
 
   // --- Weekly: Calculate weeks and subjects ---
   const selectedMonthObj = MONTHS.find(m => m.value === selectedMonth)!;
