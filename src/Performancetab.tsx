@@ -22,7 +22,7 @@ const Performancetab: React.FC = () => {
   const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
   const [compareError, setCompareError] = useState<string>("");
-  const [selectedSubject, setSelectedSubject] = useState<string>("Physics");
+  const [selectedSubject] = useState<string>("Physics");
 
   const selectedMonthObj = MONTHS.find(m => m.value === selectedMonth);
   const weeks = useMemo(() => selectedMonthObj ? getWeeksInMonth(selectedMonthObj.year, selectedMonthObj.month) : [], [selectedMonthObj]);
