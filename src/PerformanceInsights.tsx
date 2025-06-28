@@ -1,44 +1,16 @@
 import React, { useState, useMemo, useRef } from "react";
-
-const months = [
-  "June 2025", "July 2025", "August 2025", "September 2025", "October 2025", "November 2025", "December 2025", "January 2026", "February 2026", "March 2026", "April 2026", "May 2026"
-];
-const weeks = ["Week 1", "Week 2", "Week 3", "Week 4"];
-const campuses = ["North Campus", "South Campus", "East Campus", "West Campus"];
-const sections = [
-  ...Array.from({ length: 10 }, (_, i) => `11${String.fromCharCode(65 + i)}`),
-  ...Array.from({ length: 10 }, (_, i) => `12${String.fromCharCode(65 + i)}`),
-];
-const studentCounts = [5, 10, 30, 50];
-
-type TestType = "Weekly" | "Cumulative" | "Grant Test";
-
-const testTypeOptions: TestType[] = ["Weekly", "Cumulative", "Grant Test"];
-const testTypeToLabel: Record<TestType, string> = {
-  Weekly: "Week Test",
-  Cumulative: "Cumulative Test",
-  "Grant Test": "Grant Test"
-};
-const testTypeToTests: Record<TestType, string[]> = {
-  Weekly: ["Week 1 Test", "Week 2 Test", "Week 3 Test"],
-  Cumulative: ["Cumulative Test 1", "Cumulative Test 2", "Cumulative Test 3"],
-  "Grant Test": ["Grant Test 1", "Grant Test 2", "Grant Test 3"]
-};
-
-// Sample data for top/bottom performers (100 for demo)
-const allStudents = Array.from({ length: 100 }, (_, i) => {
-  const testType: TestType = testTypeOptions[i % testTypeOptions.length];
-  return {
-    name: `Student ${i + 1}`,
-    section: sections[i % sections.length],
-    campus: campuses[i % campuses.length],
-    month: months[i % months.length],
-    week: weeks[i % weeks.length],
-    testType,
-    test: testTypeToTests[testType][i % 3],
-    percent: 98 - i * 0.7 + (i % 5) * 2 // just for demo
-  };
-});
+import {
+  months,
+  weeks,
+  campuses,
+  sections,
+  studentCounts,
+  testTypeOptions,
+  testTypeToLabel,
+  testTypeToTests,
+  allStudents
+} from "@/DummyData/PerformanceInsightsData";
+import type { TestType } from "@/DummyData/PerformanceInsightsData";
 
 type SmartMultiSelectDropdownProps = {
   options: string[];
@@ -183,9 +155,9 @@ const PerformanceInsights: React.FC = () => {
       </div>
 
       {/* FILTER PANEL (TOP BAR) */}
-      <div className="bg-white shadow rounded-2xl p-4 md:p-6 flex flex-wrap gap-4 md:gap-6 items-start justify-between">
+      <div className="bg-white shadow rounded-2xl p-4 md:p-6 flex gap-4 md:gap-6 items-center overflow-x-auto scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-blue-50">
         {/* Test Type Dropdown (single select) */}
-        <div className="flex flex-col min-w-[160px]">
+        <div className="flex flex-col min-w-[160px] flex-shrink-0">
           <span className="text-xs font-semibold mb-2 text-gray-600">Test Type</span>
           <SmartSingleSelectDropdown
             options={testTypeOptions}
@@ -194,7 +166,7 @@ const PerformanceInsights: React.FC = () => {
           />
         </div>
         {/* Dynamic Test Dropdown (multi-select) */}
-        <div className="flex flex-col min-w-[160px]">
+        <div className="flex flex-col min-w-[160px] flex-shrink-0">
           <span className="text-xs font-semibold mb-2 text-gray-600">{testTypeToLabel[testType]}</span>
           <SmartMultiSelectDropdown
             options={testTypeToTests[testType]}
@@ -203,7 +175,7 @@ const PerformanceInsights: React.FC = () => {
           />
         </div>
         {/* Month Multi-select */}
-        <div className="flex flex-col min-w-[160px]">
+        <div className="flex flex-col min-w-[160px] flex-shrink-0">
           <span className="text-xs font-semibold mb-2 text-gray-600">Month</span>
           <SmartMultiSelectDropdown
             options={months}
@@ -212,7 +184,7 @@ const PerformanceInsights: React.FC = () => {
           />
         </div>
         {/* Week Multi-select */}
-        <div className="flex flex-col min-w-[160px]">
+        <div className="flex flex-col min-w-[160px] flex-shrink-0">
           <span className="text-xs font-semibold mb-2 text-gray-600">Week</span>
           <SmartMultiSelectDropdown
             options={weeks}
@@ -221,7 +193,7 @@ const PerformanceInsights: React.FC = () => {
           />
         </div>
         {/* Campus Multi-select */}
-        <div className="flex flex-col min-w-[160px]">
+        <div className="flex flex-col min-w-[160px] flex-shrink-0">
           <span className="text-xs font-semibold mb-2 text-gray-600">Campus</span>
           <SmartMultiSelectDropdown
             options={campuses}
@@ -230,7 +202,7 @@ const PerformanceInsights: React.FC = () => {
           />
         </div>
         {/* Section Multi-select */}
-        <div className="flex flex-col min-w-[160px]">
+        <div className="flex flex-col min-w-[160px] flex-shrink-0">
           <span className="text-xs font-semibold mb-2 text-gray-600">Section</span>
           <SmartMultiSelectDropdown
             options={sections}
@@ -242,12 +214,19 @@ const PerformanceInsights: React.FC = () => {
 
       {/* AVERAGE SCORE PER SUBJECT (static for demo) */}
       <div>
-        <h2 className="text-xl font-bold mb-4">Average Score Per Subject</h2>
+        <h2 className="text-2xl font-extrabold mb-6 text-gray-800 tracking-tight text-center md:text-left">Average Score Per Subject</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-          {[{ subject: "Physics", avg: "82.3%" }, { subject: "Chemistry", avg: "91.7%" }, { subject: "Botany", avg: "76.5%" }, { subject: "Zoology", avg: "88.1%" }].map((card) => (
-            <div key={card.subject} className="bg-white p-6 shadow-md rounded-xl flex flex-col items-center gap-2 hover:shadow-lg transition">
-              <div className="text-lg font-semibold text-gray-700">{card.subject}</div>
-              <div className="text-3xl font-bold text-blue-700">{card.avg}</div>
+          {[
+            { subject: "Physics", avg: "82.3%", color: "from-blue-400 to-blue-600", icon: "🧲" },
+            { subject: "Chemistry", avg: "91.7%", color: "from-pink-400 to-pink-600", icon: "⚗️" },
+            { subject: "Botany", avg: "76.5%", color: "from-green-400 to-green-600", icon: "🌱" },
+            { subject: "Zoology", avg: "88.1%", color: "from-yellow-400 to-yellow-600", icon: "🦋" }
+          ].map(card => (
+            <div key={card.subject} className={`relative bg-gradient-to-br ${card.color} p-6 rounded-2xl shadow-lg flex flex-col items-center gap-3 overflow-hidden group transition-transform hover:scale-[1.03]`}>
+              <div className="absolute right-3 top-3 text-4xl opacity-20 group-hover:opacity-30 transition">{card.icon}</div>
+              <div className="text-white text-lg font-semibold drop-shadow-sm z-10">{card.subject}</div>
+              <div className="text-4xl font-extrabold text-white drop-shadow-lg z-10">{card.avg}</div>
+              <div className="w-16 h-1 rounded-full bg-white/30 mt-2 z-10"></div>
             </div>
           ))}
         </div>
@@ -255,80 +234,80 @@ const PerformanceInsights: React.FC = () => {
 
       {/* TOP & BOTTOM PERFORMERS */}
       <div>
-        <h2 className="text-xl font-bold mb-4">Top & Bottom Performing Students</h2>
-        <div className="flex flex-col md:flex-row gap-6">
+        <h2 className="text-xl font-bold mb-4 text-gray-800 text-center md:text-left">Top & Bottom Performing Students</h2>
+        <div className="flex flex-col md:flex-row gap-8 md:gap-10">
           {/* Top Performers Card */}
-          <div className="flex-1 bg-white rounded-xl shadow-md p-6 flex flex-col gap-4">
+          <div className="flex-1 bg-white rounded-xl shadow border border-gray-100 p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-lg font-semibold">Top Performers</div>
-             <select
-  className="border rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white shadow-sm"
-  value={selectedSubject}
-  onChange={e => setSelectedSubject(e.target.value)}
->
-  {['Overall','Physics', 'Chemistry', 'Botany', 'Zoology'].map(subject => (
-    <option key={subject} value={subject}>
-      {subject}
-    </option>
-  ))}
-</select>
-              <select
-                className="border rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white shadow-sm"
-                value={performerCount}
-                onChange={e => setPerformerCount(Number(e.target.value))}
-              >
-                {studentCounts.map(count => <option key={count} value={count}>{count}</option>)}
-              </select>
+              <div className="text-base font-semibold text-gray-700">Top Performers</div>
+              <div className="flex gap-2">
+                <select
+                  className="border rounded px-2 py-1 text-sm focus:outline-none bg-white"
+                  value={selectedSubject}
+                  onChange={e => setSelectedSubject(e.target.value)}
+                >
+                  {['Overall','Physics', 'Chemistry', 'Botany', 'Zoology'].map(subject => (
+                    <option key={subject} value={subject}>{subject}</option>
+                  ))}
+                </select>
+                <select
+                  className="border rounded px-2 py-1 text-sm focus:outline-none bg-white"
+                  value={performerCount}
+                  onChange={e => setPerformerCount(Number(e.target.value))}
+                >
+                  {studentCounts.map(count => <option key={count} value={count}>{count}</option>)}
+                </select>
+              </div>
             </div>
-            <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-2">
+            <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
               {topPerformers.length === 0 ? (
                 <div className="text-gray-400 text-center py-8">No students match the selected filters.</div>
               ) : topPerformers.map((s, i) => (
-                <div key={i} className="flex items-center gap-3 p-2 rounded hover:bg-blue-50 transition">
-                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">{s.name[0]}</div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-800">{s.name}</div>
-                    <span className="inline-block bg-blue-200 text-blue-800 text-xs font-semibold px-2 py-0.5 rounded">{s.section}</span>
+                <div key={i} className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 transition">
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-base">{s.name[0]}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-800 truncate text-base">{s.name}</div>
+                    <span className="inline-block bg-gray-100 text-gray-500 text-xs font-semibold px-2 py-0.5 rounded mt-1">{s.section}</span>
                   </div>
-                  <span className="bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full text-sm">{s.percent.toFixed(1)}%</span>
+                  <span className="text-gray-700 font-bold px-3 py-1 rounded-full text-sm">{s.percent.toFixed(1)}%</span>
                 </div>
               ))}
             </div>
           </div>
           {/* Bottom Performers Card */}
-          <div className="flex-1 bg-white rounded-xl shadow-md p-6 flex flex-col gap-4">
+          <div className="flex-1 bg-white rounded-xl shadow border border-gray-100 p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-lg font-semibold">Bottom Performers</div>
-                 <select
-  className="border rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white shadow-sm"
-  value={selectedSubject}
-  onChange={e => setSelectedSubject(e.target.value)}
->
-  {['Overall','Physics', 'Chemistry', 'Botany', 'Zoology'].map(subject => (
-    <option key={subject} value={subject}>
-      {subject}
-    </option>
-  ))}
-</select>
-              <select
-                className="border rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white shadow-sm"
-                value={performerCount}
-                onChange={e => setPerformerCount(Number(e.target.value))}
-              >
-                {studentCounts.map(count => <option key={count} value={count}>{count}</option>)}
-              </select>
+              <div className="text-base font-semibold text-gray-700">Bottom Performers</div>
+              <div className="flex gap-2">
+                <select
+                  className="border rounded px-2 py-1 text-sm focus:outline-none bg-white"
+                  value={selectedSubject}
+                  onChange={e => setSelectedSubject(e.target.value)}
+                >
+                  {['Overall','Physics', 'Chemistry', 'Botany', 'Zoology'].map(subject => (
+                    <option key={subject} value={subject}>{subject}</option>
+                  ))}
+                </select>
+                <select
+                  className="border rounded px-2 py-1 text-sm focus:outline-none bg-white"
+                  value={performerCount}
+                  onChange={e => setPerformerCount(Number(e.target.value))}
+                >
+                  {studentCounts.map(count => <option key={count} value={count}>{count}</option>)}
+                </select>
+              </div>
             </div>
-            <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-2">
+            <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
               {bottomPerformers.length === 0 ? (
                 <div className="text-gray-400 text-center py-8">No students match the selected filters.</div>
               ) : bottomPerformers.map((s, i) => (
-                <div key={i} className="flex items-center gap-3 p-2 rounded hover:bg-red-50 transition">
-                  <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center text-red-700 font-bold text-lg">{s.name[0]}</div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-800">{s.name}</div>
-                    <span className="inline-block bg-red-200 text-red-800 text-xs font-semibold px-2 py-0.5 rounded">{s.section}</span>
+                <div key={i} className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 transition">
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-base">{s.name[0]}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-800 truncate text-base">{s.name}</div>
+                    <span className="inline-block bg-gray-100 text-gray-500 text-xs font-semibold px-2 py-0.5 rounded mt-1">{s.section}</span>
                   </div>
-                  <span className="bg-red-100 text-red-700 font-bold px-3 py-1 rounded-full text-sm">{s.percent.toFixed(1)}%</span>
+                  <span className="text-gray-700 font-bold px-3 py-1 rounded-full text-sm">{s.percent.toFixed(1)}%</span>
                 </div>
               ))}
             </div>

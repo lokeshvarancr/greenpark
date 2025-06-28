@@ -1,40 +1,16 @@
 import React, { useState, useMemo } from "react";
 import { Download, FileText } from "lucide-react";
-
-const TEST_TYPES = ["Weekly", "Cumulative", "Grand Test"];
-const SECTION_OPTIONS = [
-  ...Array.from({ length: 10 }, (_, i) => `11${String.fromCharCode(65 + i)}`),
-  ...Array.from({ length: 10 }, (_, i) => `12${String.fromCharCode(65 + i)}`),
-];
-const MONTHS = (() => {
-  const months = [];
-  const start = new Date(2025, 5, 1); // June 2025
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
-    months.push({
-      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
-      label: d.toLocaleString("default", { month: "long", year: "numeric" }),
-      year: d.getFullYear(),
-      month: d.getMonth(),
-    });
-  }
-  return months;
-})();
-function getWeeksInMonth(year: number, month: number) {
-  const weeks: Date[][] = [];
-  let date = new Date(year, month, 1);
-  let week: Date[] = [];
-  while (date.getMonth() === month) {
-    week.push(new Date(date));
-    if (date.getDay() === 6) {
-      weeks.push(week);
-      week = [];
-    }
-    date.setDate(date.getDate() + 1);
-  }
-  if (week.length) weeks.push(week);
-  return weeks;
-}
+import {
+  TEST_TYPES,
+  SECTION_OPTIONS,
+  MONTHS,
+  getWeeksInMonth,
+  excelData
+} from "@/DummyData/PerformanceTabData";
+import PerformanceComparison from "@/components/PerformanceComparison";
+import PerformanceTable from "@/components/PerformanceTable";
+import PerformanceComparisonTable from "@/components/PerformanceComparisonTable";
+import PerformanceSummaryCards from "@/components/PerformanceSummaryCards";
 
 const Performancetab: React.FC = () => {
   // Top bar filters
@@ -54,13 +30,6 @@ const Performancetab: React.FC = () => {
   const weekOptions = weeks.map((_, i) => `Week ${i + 1} (Test ${i + 1})`);
   const cumulativeTestOptions = ["Cumulative 1", "Cumulative 2"];
   const grandTestNames = ["Grand Test 1", "Grand Test 2"];
-
-  // Helper for status arrow
-  const getStatusSymbol = (status: string) => {
-    if (status === "+") return <span className="text-green-600 font-bold">+ <span className="sr-only">Improved</span></span>;
-    if (status === "-") return <span className="text-red-600 font-bold">− <span className="sr-only">Declined</span></span>;
-    return <span className="text-gray-500 font-bold">0 <span className="sr-only">No Change</span></span>;
-  };
 
   // Controlled interactivity: Only update on Compare
   const [comparisonData, setComparisonData] = useState<any[]>([]);
@@ -87,47 +56,6 @@ const Performancetab: React.FC = () => {
     setComparisonData(excelData.filter(row => selectedSections.includes(row.class)));
   };
 
-  // Table row generator for comparison view
-  const renderComparisonRow = (row: any) => {
-    // For demo, use mark1/mark2 as Test 1/Test 2
-    const getDelta = (a: number, b: number) => a === b ? "0" : a > b ? "+" : "-";
-    return (
-      <tr key={row.sno} className="hover:bg-blue-50 transition-all duration-300">
-        <td className="border px-2 py-1 text-center rounded-l-lg">{row.sno}</td>
-        <td className="border px-2 py-1 text-center">{row.class}</td>
-        <td className="border px-2 py-1">{row.name}</td>
-        {/* Physics */}
-        <td className="border px-2 py-1 text-center">{row.physics.mark1}</td>
-        <td className="border px-2 py-1 text-center">{row.physics.mark2}</td>
-        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.physics.mark2, row.physics.mark1))}</td>
-        <td className="border px-2 py-1 text-center">{row.physics.rank1}</td>
-        <td className="border px-2 py-1 text-center">{row.physics.rank2}</td>
-        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.physics.rank1, row.physics.rank2))}</td>
-        {/* Chemistry */}
-        <td className="border px-2 py-1 text-center">{row.chemistry.mark1}</td>
-        <td className="border px-2 py-1 text-center">{row.chemistry.mark2}</td>
-        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.chemistry.mark2, row.chemistry.mark1))}</td>
-        <td className="border px-2 py-1 text-center">{row.chemistry.rank1}</td>
-        <td className="border px-2 py-1 text-center">{row.chemistry.rank2}</td>
-        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.chemistry.rank1, row.chemistry.rank2))}</td>
-        {/* Botany */}
-        <td className="border px-2 py-1 text-center">{row.botany.mark1}</td>
-        <td className="border px-2 py-1 text-center">{row.botany.mark2}</td>
-        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.botany.mark2, row.botany.mark1))}</td>
-        <td className="border px-2 py-1 text-center">{row.botany.rank1}</td>
-        <td className="border px-2 py-1 text-center">{row.botany.rank2}</td>
-        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.botany.rank1, row.botany.rank2))}</td>
-        {/* Zoology */}
-        <td className="border px-2 py-1 text-center">{row.zoology.mark1}</td>
-        <td className="border px-2 py-1 text-center">{row.zoology.mark2}</td>
-        <td className="border px-2 py-1 text-center">{getStatusSymbol(getDelta(row.zoology.mark2, row.zoology.mark1))}</td>
-        <td className="border px-2 py-1 text-center">{row.zoology.rank1}</td>
-        <td className="border px-2 py-1 text-center">{row.zoology.rank2}</td>
-        <td className="border px-2 py-1 text-center rounded-r-lg">{getStatusSymbol(getDelta(row.zoology.rank1, row.zoology.rank2))}</td>
-      </tr>
-    );
-  };
-
   // Subject summary counts after comparison
   const getSubjectSummary = () => {
     const summary = ["physics", "chemistry", "botany", "zoology"].map(subject => {
@@ -149,8 +77,65 @@ const Performancetab: React.FC = () => {
     return summary;
   };
 
+  const subjectSummary = getSubjectSummary();
+
+  // --- Compare View Cards and Charts ---
+  const [selectedSubject, setSelectedSubject] = useState<string>("Physics");
+  const subjectOptions = ["Physics", "Chemistry", "Botany", "Zoology", "Overall"];
+
+  // Data for left bar chart (Test 1 vs Test 2 ranks for selected subject)
+  const getRankBarChartData = () => {
+    if (selectedSubject === "Overall") {
+      // Average rank for each test across all subjects
+      let t1Sum = 0, t2Sum = 0, count = 0;
+      for (const row of comparisonData) {
+        ["physics", "chemistry", "botany", "zoology"].forEach(sub => {
+          t1Sum += row[sub].rank1;
+          t2Sum += row[sub].rank2;
+          count++;
+        });
+      }
+      return [
+        { name: "Test 1", rank: count ? Math.round(t1Sum / count) : 0 },
+        { name: "Test 2", rank: count ? Math.round(t2Sum / count) : 0 },
+      ];
+    } else {
+      const key = selectedSubject.toLowerCase();
+      let t1Sum = 0, t2Sum = 0, count = 0;
+      for (const row of comparisonData) {
+        t1Sum += row[key].rank1;
+        t2Sum += row[key].rank2;
+        count++;
+      }
+      return [
+        { name: "Test 1", rank: count ? Math.round(t1Sum / count) : 0 },
+        { name: "Test 2", rank: count ? Math.round(t2Sum / count) : 0 },
+      ];
+    }
+  };
+
+  // Data for right grouped bar chart (Improved/Declined/No Change per subject)
+  const getGroupedBarChartData = () => {
+    return ["physics", "chemistry", "botany", "zoology"].map(sub => {
+      let improved = 0, declined = 0, same = 0;
+      for (const row of comparisonData) {
+        const r1 = row[sub].rank1;
+        const r2 = row[sub].rank2;
+        if (r2 < r1) improved++;
+        else if (r2 > r1) declined++;
+        else same++;
+      }
+      return {
+        subject: sub.charAt(0).toUpperCase() + sub.slice(1),
+        Improved: improved,
+        Declined: declined,
+        NoChange: same,
+      };
+    });
+  };
+
   return (
-    <div className="h-screen min-h-0 flex flex-col bg-gray-50">
+    <div className="min-h-0 flex flex-col bg-gray-50">
       {/* Top Bar Filters */}
       <div className="sticky top-0 z-30 bg-white shadow flex flex-wrap items-center justify-between gap-4 px-4 py-4 rounded-b-2xl border-b">
         <div className="flex flex-wrap gap-3 items-center w-full md:w-auto">
@@ -355,90 +340,18 @@ const Performancetab: React.FC = () => {
       <div className="mt-8">
         {showComparison ? (
           <>
-            <h2 className="text-xl font-bold mb-4">Performance Comparison</h2>
-            <div className="text-gray-500 mb-6">(Comparison view updates only after clicking Compare)</div>
-            <div className="overflow-x-auto transition-all duration-300">
-              <table className="min-w-[1200px] w-full border text-xs bg-white rounded-xl shadow">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border px-2 py-1">S.No</th>
-                    <th className="border px-2 py-1">Class</th>
-                    <th className="border px-2 py-1">Student Name</th>
-                    {/* Physics */}
-                    <th className="border px-2 py-1" colSpan={3}>Physics</th>
-                    <th className="border px-2 py-1" colSpan={3}>Physics Rank</th>
-                    {/* Chemistry */}
-                    <th className="border px-2 py-1" colSpan={3}>Chemistry</th>
-                    <th className="border px-2 py-1" colSpan={3}>Chemistry Rank</th>
-                    {/* Botany */}
-                    <th className="border px-2 py-1" colSpan={3}>Botany</th>
-                    <th className="border px-2 py-1" colSpan={3}>Botany Rank</th>
-                    {/* Zoology */}
-                    <th className="border px-2 py-1" colSpan={3}>Zoology</th>
-                    <th className="border px-2 py-1" colSpan={3}>Zoology Rank</th>
-                  </tr>
-                  <tr className="bg-gray-50">
-                    <th className="border px-2 py-1" colSpan={3}></th>
-                    {/* Physics */}
-                    <th className="border px-2 py-1">Test 1</th>
-                    <th className="border px-2 py-1">Test 2</th>
-                    <th className="border px-2 py-1">Δ</th>
-                    <th className="border px-2 py-1">Test 1</th>
-                    <th className="border px-2 py-1">Test 2</th>
-                    <th className="border px-2 py-1">Δ</th>
-                    {/* Chemistry */}
-                    <th className="border px-2 py-1">Test 1</th>
-                    <th className="border px-2 py-1">Test 2</th>
-                    <th className="border px-2 py-1">Δ</th>
-                    <th className="border px-2 py-1">Test 1</th>
-                    <th className="border px-2 py-1">Test 2</th>
-                    <th className="border px-2 py-1">Δ</th>
-                    {/* Botany */}
-                    <th className="border px-2 py-1">Test 1</th>
-                    <th className="border px-2 py-1">Test 2</th>
-                    <th className="border px-2 py-1">Δ</th>
-                    <th className="border px-2 py-1">Test 1</th>
-                    <th className="border px-2 py-1">Test 2</th>
-                    <th className="border px-2 py-1">Δ</th>
-                    {/* Zoology */}
-                    <th className="border px-2 py-1">Test 1</th>
-                    <th className="border px-2 py-1">Test 2</th>
-                    <th className="border px-2 py-1">Δ</th>
-                    <th className="border px-2 py-1">Test 1</th>
-                    <th className="border px-2 py-1">Test 2</th>
-                    <th className="border px-2 py-1">Δ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {comparisonData.map(renderComparisonRow)}
-                </tbody>
-              </table>
-            </div>
-            {/* Subject Summary Panel */}
-            <div className="mt-8 animate-fadeIn">
-              <h3 className="text-lg font-semibold mb-3">+ / – / 0 Count Summary per Subject</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full max-w-2xl mx-auto bg-white rounded-xl shadow border text-sm">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="px-4 py-2 text-left rounded-tl-xl">Subject</th>
-                      <th className="px-4 py-2 text-center"> <span className='text-green-600 font-bold'>+ Improved</span> </th>
-                      <th className="px-4 py-2 text-center"> <span className='text-red-600 font-bold'>– Declined</span> </th>
-                      <th className="px-4 py-2 text-center rounded-tr-xl"> <span className='text-gray-500 font-bold'>0 No Change</span> </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {getSubjectSummary().map(s => (
-                      <tr key={s.subject} className="even:bg-gray-50">
-                        <td className="px-4 py-2 font-medium">{s.subject}</td>
-                        <td className="px-4 py-2 text-center"><span className="inline-block min-w-[2.5em] rounded-full bg-green-100 text-green-700 font-semibold px-2 py-1">{s.improved}</span></td>
-                        <td className="px-4 py-2 text-center"><span className="inline-block min-w-[2.5em] rounded-full bg-red-100 text-red-700 font-semibold px-2 py-1">{s.declined}</span></td>
-                        <td className="px-4 py-2 text-center"><span className="inline-block min-w-[2.5em] rounded-full bg-gray-200 text-gray-700 font-semibold px-2 py-1">{s.same}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            {/* --- Summary Cards and Charts --- */}
+            <PerformanceSummaryCards
+              summary={subjectSummary}
+              rankBarChartData={getRankBarChartData()}
+              groupedBarChartData={getGroupedBarChartData()}
+              subjectOptions={subjectOptions}
+              selectedSubject={selectedSubject}
+              setSelectedSubject={setSelectedSubject}
+            />
+            {/* --- Table --- */}
+            <div className="max-w-[80rem] mx-auto px-2 mt-6">
+              <PerformanceComparisonTable data={comparisonData} />
             </div>
           </>
         ) : (
@@ -450,18 +363,3 @@ const Performancetab: React.FC = () => {
 };
 
 export default Performancetab;
-
-const excelData = [
-  { sno: 1, class: "11A", name: "Vignesh A", physics: { mark1: 100, rank1: 2, mark2: 110, rank2: 2, status: "+" }, chemistry: { mark1: 170, rank1: 2, mark2: 160, rank2: 2, status: "-" }, botany: { mark1: 200, rank1: 3, mark2: 220, rank2: 2, status: "+" }, zoology: { mark1: 180, rank1: 5, mark2: 180, rank2: 3, status: "0" } },
-  { sno: 2, class: "11A", name: "Shalini K", physics: { mark1: 85, rank1: 4, mark2: 95, rank2: 3, status: "+" }, chemistry: { mark1: 140, rank1: 5, mark2: 150, rank2: 4, status: "+" }, botany: { mark1: 210, rank1: 2, mark2: 200, rank2: 4, status: "-" }, zoology: { mark1: 190, rank1: 4, mark2: 190, rank2: 2, status: "0" } },
-  { sno: 3, class: "11A", name: "Aravind S", physics: { mark1: 110, rank1: 1, mark2: 105, rank2: 2, status: "-" }, chemistry: { mark1: 160, rank1: 3, mark2: 170, rank2: 1, status: "+" }, botany: { mark1: 180, rank1: 5, mark2: 200, rank2: 3, status: "-" }, zoology: { mark1: 200, rank1: 1, mark2: 200, rank2: 2, status: "-" } },
-  { sno: 4, class: "11B", name: "Priya M", physics: { mark1: 90, rank1: 3, mark2: 90, rank2: 4, status: "0" }, chemistry: { mark1: 130, rank1: 6, mark2: 140, rank2: 5, status: "+" }, botany: { mark1: 190, rank1: 4, mark2: 180, rank2: 4, status: "-" }, zoology: { mark1: 170, rank1: 5, mark2: 180, rank2: 5, status: "+" } },
-  { sno: 5, class: "11B", name: "Naveen R", physics: { mark1: 70, rank1: 6, mark2: 80, rank2: 5, status: "+" }, chemistry: { mark1: 150, rank1: 4, mark2: 140, rank2: 6, status: "-" }, botany: { mark1: 230, rank1: 1, mark2: 220, rank2: 1, status: "+" }, zoology: { mark1: 160, rank1: 7, mark2: 170, rank2: 6, status: "+" } },
-  { sno: 6, class: "11B", name: "Lakshmi D", physics: { mark1: 95, rank1: 2, mark2: 95, rank2: 3, status: "-" }, chemistry: { mark1: 120, rank1: 7, mark2: 120, rank2: 7, status: "+" }, botany: { mark1: 200, rank1: 3, mark2: 190, rank2: 5, status: "-" }, zoology: { mark1: 175, rank1: 5, mark2: 175, rank2: 6, status: "+" } },
-  { sno: 7, class: "11C", name: "Santhosh P", physics: { mark1: 105, rank1: 1, mark2: 115, rank2: 1, status: "-" }, chemistry: { mark1: 180, rank1: 1, mark2: 180, rank2: 1, status: "0" }, botany: { mark1: 220, rank1: 2, mark2: 230, rank2: 2, status: "+" }, zoology: { mark1: 200, rank1: 1, mark2: 210, rank2: 6, status: "+" } },
-  { sno: 8, class: "11C", name: "Meena L", physics: { mark1: 60, rank1: 7, mark2: 65, rank2: 7, status: "-" }, chemistry: { mark1: 150, rank1: 2, mark2: 150, rank2: 2, status: "-" }, botany: { mark1: 150, rank1: 5, mark2: 160, rank2: 5, status: "-" }, zoology: { mark1: 140, rank1: 6, mark2: 150, rank2: 7, status: "-" } },
-  { sno: 9, class: "11C", name: "Harish T", physics: { mark1: 78, rank1: 5, mark2: 78, rank2: 6, status: "0" }, chemistry: { mark1: 135, rank1: 6, mark2: 125, rank2: 7, status: "-" }, botany: { mark1: 170, rank1: 4, mark2: 170, rank2: 6, status: "-" }, zoology: { mark1: 165, rank1: 6, mark2: 165, rank2: 6, status: "-" } },
-  { sno: 10, class: "11D", name: "Divya R", physics: { mark1: 88, rank1: 3, mark2: 95, rank2: 4, status: "+" }, chemistry: { mark1: 155, rank1: 4, mark2: 140, rank2: 6, status: "-" }, botany: { mark1: 180, rank1: 5, mark2: 190, rank2: 4, status: "-" }, zoology: { mark1: 180, rank1: 3, mark2: 190, rank2: 2, status: "+" } },
-  { sno: 11, class: "11D", name: "Arjun B", physics: { mark1: 72, rank1: 6, mark2: 70, rank2: 6, status: "-" }, chemistry: { mark1: 140, rank1: 5, mark2: 130, rank2: 7, status: "-" }, botany: { mark1: 160, rank1: 5, mark2: 170, rank2: 4, status: "-" }, zoology: { mark1: 175, rank1: 5, mark2: 165, rank2: 5, status: "-" } },
-  { sno: 12, class: "11D", name: "Sneha S", physics: { mark1: 92, rank1: 3, mark2: 96, rank2: 2, status: "+" }, chemistry: { mark1: 160, rank1: 3, mark2: 165, rank2: 2, status: "+" }, botany: { mark1: 190, rank1: 3, mark2: 200, rank2: 3, status: "+" }, zoology: { mark1: 185, rank1: 2, mark2: 190, rank2: 2, status: "+" } },
-];
