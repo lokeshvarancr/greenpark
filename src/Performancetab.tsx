@@ -7,8 +7,6 @@ import {
   getWeeksInMonth,
   excelData
 } from "@/DummyData/PerformanceTabData";
-import PerformanceComparison from "@/components/PerformanceComparison";
-import PerformanceTable from "@/components/PerformanceTable";
 import PerformanceComparisonTable from "@/components/PerformanceComparisonTable";
 import PerformanceSummaryCards from "@/components/PerformanceSummaryCards";
 
@@ -24,6 +22,7 @@ const Performancetab: React.FC = () => {
   const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
   const [compareError, setCompareError] = useState<string>("");
+  const [selectedSubject, setSelectedSubject] = useState<string>("Physics");
 
   const selectedMonthObj = MONTHS.find(m => m.value === selectedMonth);
   const weeks = useMemo(() => selectedMonthObj ? getWeeksInMonth(selectedMonthObj.year, selectedMonthObj.month) : [], [selectedMonthObj]);
@@ -80,10 +79,6 @@ const Performancetab: React.FC = () => {
   const subjectSummary = getSubjectSummary();
 
   // --- Compare View Cards and Charts ---
-  const [selectedSubject, setSelectedSubject] = useState<string>("Physics");
-  const subjectOptions = ["Physics", "Chemistry", "Botany", "Zoology", "Overall"];
-
-  // Data for left bar chart (Test 1 vs Test 2 ranks for selected subject)
   const getRankBarChartData = () => {
     if (selectedSubject === "Overall") {
       // Average rank for each test across all subjects
@@ -345,9 +340,6 @@ const Performancetab: React.FC = () => {
               summary={subjectSummary}
               rankBarChartData={getRankBarChartData()}
               groupedBarChartData={getGroupedBarChartData()}
-              subjectOptions={subjectOptions}
-              selectedSubject={selectedSubject}
-              setSelectedSubject={setSelectedSubject}
             />
             {/* --- Table --- */}
             <div className="max-w-[80rem] mx-auto px-2 mt-6">

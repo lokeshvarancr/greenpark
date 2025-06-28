@@ -17,7 +17,6 @@ import FileSaver from "file-saver";
 import IQFilterBar from "@/components/IQFilterBar";
 import SectionsModal from "@/components/SectionsModal";
 import AccuracyBadge from "@/components/AccuracyBadge";
-import QuestionTable from "@/components/QuestionTable";
 import Tooltip from "@/components/ui/Tooltip"; // (Assume you have a Tooltip component, or use a simple one)
 import InsightSummaryCards from "@/components/InsightSummaryCards";
 
@@ -240,4 +239,5 @@ const IndividualQuestions: React.FC<{ studentResponses?: StudentResponse[] }> = 
   );
 };
 
+export type { Question };
 export default IndividualQuestions;

@@ -25,9 +25,7 @@ interface PerformanceSummaryCardsProps {
     Declined: number;
     NoChange: number;
   }[];
-  subjectOptions: string[];
-  selectedSubject: string;
-  setSelectedSubject: (val: string) => void;
+  rankBarChartData: any[]; // Add the correct type if known
 }
 
 const subjectIcons: Record<string, string> = {
@@ -77,9 +75,6 @@ const GroupedBarChart = ({
 const PerformanceSummaryCards: React.FC<PerformanceSummaryCardsProps> = ({
   summary,
   groupedBarChartData,
-  subjectOptions,
-  selectedSubject,
-  setSelectedSubject,
 }) => (
   <div className="flex flex-col lg:flex-row gap-6 mb-8">
     {/* Left: 2x2 Card Grid */}

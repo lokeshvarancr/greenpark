@@ -14,11 +14,11 @@
 import { useMemo, useState } from "react";
 import DashboardCard from "@/components/ui/DashboardCard";
 import { format, isWithinInterval, subDays } from "date-fns";
-import { Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart, PieChart, Pie, Cell, XAxis, YAxis } from 'recharts';
 import CountUp from "@/components/ui/CountUp";
 import { SECTION1_DASHBOARD_DATASET } from "@/DummyData/Section1DashboardData";
 import { useFilter } from "@/lib/DashboardFilterContext";
 import FilterBar from "@/components/FilterBar";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import MonthlyPerformanceHistogram from "@/components/ui/analytics/MonthlyPerformanceHistogram";
 import AverageTotalScoreGauge from "./components/ui/AverageTotalScoreGauge";
 
