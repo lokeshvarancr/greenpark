@@ -1,165 +1,186 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Eye, Download, FileText } from "lucide-react";
-import {
-  BATCHES,
-  CUMULATIVE_PAIRS,
-  MONTHS,
-  getWeeksInMonth,
-  QUESTIONS,
-  TEST_TYPES
-} from "@/DummyData/IndividualQuestionsData";
-import type {
-  Question,
-  StudentResponse
-} from "@/DummyData/IndividualQuestionsData";
-import QuestionViewModal from "@/components/QuestionViewModal";
+import { getQuestionsData } from "./api/questions.api";
+import type { QuestionsData, Question, QuestionFilterRequest } from "./types/questions";
+import QuestionViewModal from "./components/QuestionViewModal";
 import FileSaver from "file-saver";
-import IQFilterBar from "@/components/IQFilterBar";
-import SectionsModal from "@/components/SectionsModal";
-import AccuracyBadge from "@/components/AccuracyBadge";
-import Tooltip from "@/components/ui/Tooltip"; // (Assume you have a Tooltip component, or use a simple one)
-import InsightSummaryCards from "@/components/InsightSummaryCards";
+import IQFilterBar from "./components/IQFilterBar";
+import SectionsModal from "./components/SectionsModal";
+import AccuracyBadge from "./components/AccuracyBadge";
+import Tooltip from "./components/ui/Tooltip";
+import InsightSummaryCards from "./components/InsightSummaryCards";
 
-// Define SECTION_OPTIONS before using it in state and props
 const SECTION_OPTIONS = [
   ...Array.from({ length: 10 }, (_, i) => `11${String.fromCharCode(65 + i)}`),
   ...Array.from({ length: 10 }, (_, i) => `12${String.fromCharCode(65 + i)}`),
 ];
 
-// --------------------
-// Main Component
-// --------------------
-const IndividualQuestions: React.FC<{ studentResponses?: StudentResponse[] }> = ({ studentResponses = [] }) => {
-  // Top bar filters
-  const [testType, setTestType] = useState<string>(TEST_TYPES[0]);
-  const [selectedMonth, setSelectedMonth] = useState<string>(MONTHS[0].value);
-  const [selectedWeekIdx, setSelectedWeekIdx] = useState<number>(0);
-  const [selectedSubject, setSelectedSubject] = useState<string>("Physics"); // Default to Physics for Weekly
-  const [selectedBatch, setSelectedBatch] = useState<string>(BATCHES[0]);
-  const [selectedPair, setSelectedPair] = useState<string>(CUMULATIVE_PAIRS[0]);
-  const [selectedGrandTest, setSelectedGrandTest] = useState<string>("Grand Test 1");
-  const [viewModalQuestion, setViewModalQuestion] = useState<Question | null>(null);
+const monthOptions = Array.from({ length: 12 }, (_, i) => {
+  const date = new Date(2025, 5 + i, 1);
+  return { label: date.toLocaleString("default", { month: "long", year: "numeric" }), value: `${date.getFullYear()}-${date.getMonth() + 1}` };
+});
+const subjectOptions = [
+  { label: "Physics", value: "physics" },
+  { label: "Chemistry", value: "chemistry" },
+  { label: "Botany", value: "botany" },
+  { label: "Zoology", value: "zoology" },
+];
+const subjectPairOptions = [
+  { label: "Physics+Botany", value: "physics+botany" },
+  { label: "Chemistry+Zoology", value: "chemistry+zoology" },
+];
+const grandTestOptions = [
+  { label: "Grand Test 1", value: "GT1" },
+  { label: "Grand Test 2", value: "GT2" },
+];
+const batchOptions = [
+  { label: "Batch A", value: "A" },
+  { label: "Batch B", value: "B" },
+];
+
+function getWeeksForMonth(month: string) {
+  // month: "2025-6" (June 2025)
+  const [year, m] = month.split("-").map(Number);
+  const first = new Date(year, m - 1, 1);
+  const last = new Date(year, m, 0);
+  const weeks = [];
+  let start = new Date(first);
+  while (start <= last) {
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    if (end > last) end.setDate(last.getDate());
+    weeks.push({
+      label: `${start.getDate()}.${start.getMonth() + 1}.${start.getFullYear()} - ${end.getDate()}.${end.getMonth() + 1}.${end.getFullYear()}`,
+      value: `${start.getDate()}.${start.getMonth() + 1}`
+    });
+    start.setDate(start.getDate() + 7);
+  }
+  return weeks;
+}
+
+const IndividualQuestions: React.FC = () => {
+  const [data, setData] = useState<QuestionsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<QuestionFilterRequest>({
+    testType: "weekly",
+    month: monthOptions[0].value,
+    section: SECTION_OPTIONS[0],
+  });
   const [sectionsModalOpen, setSectionsModalOpen] = useState(false);
-  const [selectedSections, setSelectedSections] = useState<string[]>([...SECTION_OPTIONS]);
+  const [viewModalQuestion, setViewModalQuestion] = useState<Question | null>(null);
 
-  // --- Weekly: Calculate weeks and subjects ---
-  const selectedMonthObj = MONTHS.find(m => m.value === selectedMonth)!;
-  const weeks = useMemo(() => getWeeksInMonth(selectedMonthObj.year, selectedMonthObj.month), [selectedMonthObj]);
+  // Derived options
+  const weekOptions = filter.testType === "weekly" ? getWeeksForMonth(filter.month) : [];
 
-  // --- Filtered questions logic ---
-  const questionsToShow = useMemo(() => {
-    let questions: Question[] = [];
-    if (testType === "Weekly") {
-      if (!selectedSubject) return [];
-      let count = 0;
-      if (selectedSubject === "Physics") count = 30;
-      else if (selectedSubject === "Chemistry") count = 45;
-      else if (selectedSubject === "Botany" || selectedSubject === "Zoology") count = 60;
-      questions = QUESTIONS.filter(q => q.subject === selectedSubject).slice(0, count);
-      // Always start numbering from 1
-      questions = questions.map((q, i) => ({ ...q, number: i + 1 }));
-    } else if (testType === "Cumulative") {
-      const pair = selectedPair.split(" + ");
-      let first = QUESTIONS.filter(q => q.subject === pair[0]).slice(0, 50).map((q, i) => ({ ...q, number: i + 1 }));
-      let second = QUESTIONS.filter(q => q.subject === pair[1]).slice(0, 50).map((q, i) => ({ ...q, number: i + 51 }));
-      questions = [...first, ...second];
-    } else if (testType === "Grand Test") {
-      // Physics: 1–30, Chemistry: 31–75, Botany: 76–135, Zoology: 136–180
-      let idx = 1;
-      let physics = QUESTIONS.filter(q => q.subject === "Physics").slice(0, 30).map((q, i) => ({ ...q, number: idx + i }));
-      idx += 30;
-      let chemistry = QUESTIONS.filter(q => q.subject === "Chemistry").slice(0, 45).map((q, i) => ({ ...q, number: idx + i }));
-      idx += 45;
-      let botany = QUESTIONS.filter(q => q.subject === "Botany").slice(0, 60).map((q, i) => ({ ...q, number: idx + i }));
-      idx += 60;
-      let zoology = QUESTIONS.filter(q => q.subject === "Zoology").slice(0, 45).map((q, i) => ({ ...q, number: idx + i }));
-      questions = [...physics, ...chemistry, ...botany, ...zoology];
-    }
-    // Do NOT filter by section here; section affects only stats, not question count
-    return questions;
-  }, [testType, selectedSubject, selectedPair, selectedGrandTest, selectedWeekIdx, selectedMonth]);
+  useEffect(() => {
+    setLoading(true);
+    getQuestionsData(filter)
+      .then((res) => {
+        setData(res);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to fetch data");
+        setLoading(false);
+      });
+  }, [filter]);
 
-  // --- Per-question stats based on selected sections ---
-  // For demo, simulate per-question stats by section
-  const getSectionStats = (q: Question) => {
-    // Simulate: each section has 10-20 students per question
-    const count = 15;
-    // Simulate attempts/correct/incorrect as a function of count
-    const attempts = Math.round(count * 0.95);
-    const correct = Math.round(attempts * (q.accuracy / 100));
-    const incorrect = attempts - correct;
-    return { count, attempts, correct, incorrect, accuracy: q.accuracy };
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="ml-4 text-lg text-gray-600">Loading...</span>
+      </div>
+    );
+  }
+  if (error) {
+    return <div className="text-red-600 text-center py-8">{error}</div>;
+  }
+  if (!data) {
+    return <div className="text-gray-600 text-center py-8">No data available.</div>;
+  }
 
-  // --- Export Handlers ---
+  // Table and metrics rendering
+  const questionsToShow = data.questions;
+  const metrics = data.metrics;
+
+  // Export Handlers
   const handleExport = (type: "CSV" | "PDF") => {
-    if (type === "CSV") {
-      // Generate CSV from questionsToShow
-      const headers = ["Q#","Subject","Total Count","Attempts","Correct","Incorrect","Accuracy"];
-      const rows = questionsToShow.map(q => {
-        const stats = getSectionStats(q);
-        return [q.number, q.subject, stats.count, stats.attempts, stats.correct, stats.incorrect, stats.accuracy + "%"].join(",");
-      });
-      const csv = [headers.join(","), ...rows].join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      FileSaver.saveAs(blob, "individual-questions.csv");
-    } else if (type === "PDF") {
-      // For demo: just export CSV as .pdf for now
-      const headers = ["Q#","Subject","Total Count","Attempts","Correct","Incorrect","Accuracy"];
-      const rows = questionsToShow.map(q => {
-        const stats = getSectionStats(q);
-        return [q.number, q.subject, stats.count, stats.attempts, stats.correct, stats.incorrect, stats.accuracy + "%"].join(",");
-      });
-      const csv = [headers.join(","), ...rows].join("\n");
-      const blob = new Blob([csv], { type: "application/pdf" });
-      FileSaver.saveAs(blob, "individual-questions.pdf");
-    }
+    const headers = ["Q#","Subject","Total Count","Attempts","Correct","Incorrect","Accuracy"];
+    const rows = questionsToShow.map((q, i) => {
+      return [
+        i + 1,
+        q.subject,
+        q.totalCount,
+        q.attempts,
+        q.correct,
+        q.incorrect,
+        q.accuracy + "%"
+      ].join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: type === "CSV" ? "text/csv;charset=utf-8;" : "application/pdf" });
+    FileSaver.saveAs(blob, `individual-questions.${type.toLowerCase()}`);
   };
 
-  // --- FilterBar Dropdown Options ---
-  const weekOptions = weeks.map((w, i) => ({
-    label: `Week ${i + 1} (${w[0].toLocaleDateString()} - ${w[w.length - 1].toLocaleDateString()})`,
-    value: String(i),
-  }));
-  const subjectOptions = ["Physics", "Chemistry", "Botany", "Zoology"].map(s => ({ label: s, value: s }));
-  const batchOptions = BATCHES.map(b => ({ label: b, value: b }));
-  const subjectPair1Options = ["Physics", "Chemistry"].map(s => ({ label: s, value: s }));
-  const subjectPair2Options = ["Botany", "Zoology"].map(s => ({ label: s, value: s }));
-  const grandTestOptions = Array.from({ length: 4 }, (_, i) => ({ label: `Grand Test ${i + 1}`, value: `Grand Test ${i + 1}` }));
+  // Filter change handlers
+  const handleTestType = (v: string) => {
+    setFilter(f => {
+      let testType: QuestionFilterRequest["testType"] =
+        v === "Weekly" ? "weekly" : v === "Cumulative" ? "cumulative" : "grandtest";
+      let newFilter: QuestionFilterRequest = { ...f, testType };
+      if (testType === "weekly") {
+        newFilter = { testType, month: monthOptions[0].value, section: SECTION_OPTIONS[0] };
+      } else if (testType === "cumulative") {
+        newFilter = { testType, month: monthOptions[0].value, batch: batchOptions[0].value, subjectPair: subjectPairOptions[0].value as QuestionFilterRequest["subjectPair"], section: SECTION_OPTIONS[0] };
+      } else if (testType === "grandtest") {
+        newFilter = { testType, month: monthOptions[0].value, grandTestName: grandTestOptions[0].value, section: SECTION_OPTIONS[0] };
+      }
+      return newFilter;
+    });
+  };
 
-  // --- UI ---
+  const handleMonth = (v: string) => {
+    setFilter(f => ({ ...f, month: v, ...(f.testType === "weekly" ? { week: getWeeksForMonth(v)[0]?.value } : {}) }));
+  };
+  const handleWeek = (v: string) => setFilter(f => ({ ...f, week: v }));
+  const handleBatch = (v: string) => setFilter(f => ({ ...f, batch: v }));
+  const handleSubject = (v: string) => setFilter(f => ({ ...f, subject: v as QuestionFilterRequest["subject"] }));
+  const handleSubjectPair = (v: string) => setFilter(f => ({ ...f, subjectPair: v as QuestionFilterRequest["subjectPair"] }));
+  const handleGrandTestName = (v: string) => setFilter(f => ({ ...f, grandTestName: v }));
+  const handleSection = (sections: string[]) => setFilter(f => ({ ...f, section: sections[0] }));
+
   return (
     <div className="min-h-0 flex flex-col bg-gray-50">
-      {/* Shared container for filter bar and table for perfect alignment */}
       <div className="w-full max-w-7xl mx-auto px-2 md:px-6 flex flex-col gap-4">
         {/* Top Bar Filters */}
         <div className="sticky top-0 z-30 bg-white shadow flex flex-wrap items-center justify-between gap-4 px-4 py-3 rounded-b-xl border-b min-w-0">
           <IQFilterBar
-            testType={testType}
-            setTestType={setTestType}
-            month={selectedMonth}
-            setMonth={setSelectedMonth}
-            week={String(selectedWeekIdx)}
-            setWeek={v => setSelectedWeekIdx(Number(v))}
-            weekOptions={weekOptions}
-            batch={selectedBatch}
-            setBatch={setSelectedBatch}
-            batchOptions={batchOptions}
-            subject={selectedSubject}
-            setSubject={setSelectedSubject}
-            subjectOptions={subjectOptions}
-            subjectPair1={selectedPair.split(" + ")[0]}
-            setSubjectPair1={v => setSelectedPair(v + " + " + selectedPair.split(" + ")[1])}
-            subjectPair2={selectedPair.split(" + ")[1]}
-            setSubjectPair2={v => setSelectedPair(selectedPair.split(" + ")[0] + " + " + v)}
-            subjectPair1Options={subjectPair1Options}
-            subjectPair2Options={subjectPair2Options}
-            grandTestName={selectedGrandTest}
-            setGrandTestName={setSelectedGrandTest}
-            grandTestOptions={grandTestOptions}
+            testType={filter.testType === "weekly" ? "Weekly" : filter.testType === "cumulative" ? "Cumulative" : "Grand Test"}
+            setTestType={handleTestType}
+            month={filter.month}
+            setMonth={handleMonth}
+            week={filter.week}
+            setWeek={filter.testType === "weekly" ? handleWeek : undefined}
+            weekOptions={filter.testType === "weekly" ? weekOptions : undefined}
+            batch={filter.batch}
+            setBatch={filter.testType === "cumulative" ? handleBatch : undefined}
+            batchOptions={filter.testType === "cumulative" ? batchOptions : undefined}
+            subject={filter.subject}
+            setSubject={filter.testType === "weekly" ? handleSubject : undefined}
+            subjectOptions={filter.testType === "weekly" ? subjectOptions : undefined}
+            subjectPair1={filter.subjectPair?.split("+")[0]}
+            setSubjectPair1={filter.testType === "cumulative" ? v => handleSubjectPair(v + "+" + (filter.subjectPair?.split("+")[1] || "botany")) : undefined}
+            subjectPair2={filter.subjectPair?.split("+")[1]}
+            setSubjectPair2={filter.testType === "cumulative" ? v => handleSubjectPair((filter.subjectPair?.split("+")[0] || "physics") + "+" + v) : undefined}
+            subjectPair1Options={filter.testType === "cumulative" ? [{ label: "Physics", value: "physics" }, { label: "Chemistry", value: "chemistry" }] : undefined}
+            subjectPair2Options={filter.testType === "cumulative" ? [{ label: "Botany", value: "botany" }, { label: "Zoology", value: "zoology" }] : undefined}
+            grandTestName={filter.grandTestName}
+            setGrandTestName={filter.testType === "grandtest" ? handleGrandTestName : undefined}
+            grandTestOptions={filter.testType === "grandtest" ? grandTestOptions : undefined}
             onOpenSections={() => setSectionsModalOpen(true)}
           />
-          {/* Download Buttons */}
           <div className="flex gap-2 ml-auto">
             <button className="flex items-center gap-1 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow" onClick={() => handleExport("CSV")}> <Download className="w-4 h-4" /> CSV </button>
             <button className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-800 transition shadow" onClick={() => handleExport("PDF")}> <FileText className="w-4 h-4" /> PDF </button>
@@ -168,16 +189,18 @@ const IndividualQuestions: React.FC<{ studentResponses?: StudentResponse[] }> = 
         <SectionsModal
           open={sectionsModalOpen}
           onClose={() => setSectionsModalOpen(false)}
-          selectedSections={selectedSections}
-          setSelectedSections={setSelectedSections}
+          selectedSections={[filter.section]}
+          setSelectedSections={sections => handleSection(sections)}
           sectionOptions={SECTION_OPTIONS}
         />
-        {/* Insight Summary Cards Row */}
-        <InsightSummaryCards />
+       {/* Insight Summary Cards Row */}
+<div className="w-full">
+  <InsightSummaryCards metrics={metrics} />
+</div>
+
         {/* Per-Question Analysis Section */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 flex-1 flex flex-col min-w-0 w-full max-w-7xl mx-auto mt-2">
           <div className="w-full flex-1 flex flex-col">
-            {/* Only this div should scroll */}
             <div className="flex-1" style={{ maxHeight: 'unset' }}>
               <div className="relative w-full overflow-y-auto" style={{ maxHeight: '70vh' }}>
                 <table className="w-full text-sm whitespace-nowrap border-separate border-spacing-0">
@@ -201,25 +224,22 @@ const IndividualQuestions: React.FC<{ studentResponses?: StudentResponse[] }> = 
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {questionsToShow.map((q, idx) => {
-                      const stats = getSectionStats(q);
-                      return (
-                        <tr key={q.id} className={`transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`}>
-                          <td className="py-3 px-3">{q.number}</td>
-                          <td className="py-3 px-3">{q.subject}</td>
-                          <td className="py-3 px-3 text-center">{stats.count}</td>
-                          <td className="py-3 px-3 text-center">{stats.attempts}</td>
-                          <td className="py-3 px-3 text-center">{stats.correct}</td>
-                          <td className="py-3 px-3 text-center">{stats.incorrect}</td>
-                          <td className="py-3 px-3 text-center"><AccuracyBadge accuracy={stats.accuracy} /></td>
-                          <td className="py-3 px-3 text-center">
-                            <button className="text-blue-600 hover:underline flex items-center gap-1" onClick={() => setViewModalQuestion(q)}>
-                              <Eye className="w-4 h-4" /> View
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {questionsToShow.map((q, idx) => (
+                      <tr key={q.questionId} className={`transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`}>
+                        <td className="py-3 px-3">{idx + 1}</td>
+                        <td className="py-3 px-3">{q.subject}</td>
+                        <td className="py-3 px-3 text-center">{q.totalCount}</td>
+                        <td className="py-3 px-3 text-center">{q.attempts}</td>
+                        <td className="py-3 px-3 text-center">{q.correct}</td>
+                        <td className="py-3 px-3 text-center">{q.incorrect}</td>
+                        <td className="py-3 px-3 text-center"><AccuracyBadge accuracy={q.accuracy} /></td>
+                        <td className="py-3 px-3 text-center">
+                          <button className="text-blue-600 hover:underline flex items-center gap-1" onClick={() => setViewModalQuestion(q)}>
+                            <Eye className="w-4 h-4" /> View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -232,12 +252,10 @@ const IndividualQuestions: React.FC<{ studentResponses?: StudentResponse[] }> = 
         open={!!viewModalQuestion}
         onClose={() => setViewModalQuestion(null)}
         question={viewModalQuestion}
-        studentResponses={studentResponses}
         modalClassName="max-w-2xl w-full mx-auto my-8 max-h-[90vh] overflow-y-auto p-6 shadow-2xl rounded-2xl bg-white"
       />
     </div>
   );
 };
 
-export type { Question };
 export default IndividualQuestions;

@@ -1,0 +1,151 @@
+{
+  "metrics": {
+    "fullAttemptCoverage": 92.3,
+    "aggregateAccuracy": 76.8,
+    "accuracyDistribution": [
+      { "band": "High", "count": 5 },
+      { "band": "Medium", "count": 3 },
+      { "band": "Low", "count": 2 }
+    ],
+    "engagementConsistency": 3.4,
+    "improvementOpportunities": 3,
+    "avgIncorrectPerQuestion": 1.7
+  },
+  "questions": [
+    {
+      "questionId": "NEET-PHY-1",
+      "subject": "Physics",
+      "totalCount": 30,
+      "attempts": 28,
+      "correct": 22,
+      "incorrect": 6,
+      "accuracy": 78.6,
+      "viewable": true,
+      "modal": {
+        "questionText": "A particle moves in a circle of radius r with constant speed v. What is the magnitude of its acceleration?",
+        "subject": "Physics",
+        "totalAttempts": 28,
+        "optionAttempts": { "A": 8, "B": 12, "C": 6, "D": 2 },
+        "correctPercentage": 78.6,
+        "incorrectPercentage": 21.4,
+        "mostCommonIncorrectPercentage": 10.7,
+        "optionDistribution": { "A": 8, "B": 12, "C": 6, "D": 2 },
+        "options": {
+          "A": "v^2/r",
+          "B": "v/r^2",
+          "C": "r^2/v",
+          "D": "v*r"
+        },
+        "correctOption": "A"
+      }
+    },
+    {
+      "questionId": "NEET-PHY-2",
+      "subject": "Physics",
+      "totalCount": 30,
+      "attempts": 27,
+      "correct": 19,
+      "incorrect": 8,
+      "accuracy": 70.4,
+      "viewable": true,
+      "modal": {
+        "questionText": "Which of the following is not a unit of energy?",
+        "subject": "Physics",
+        "totalAttempts": 27,
+        "optionAttempts": { "A": 7, "B": 10, "C": 6, "D": 4 },
+        "correctPercentage": 70.4,
+        "incorrectPercentage": 29.6,
+        "mostCommonIncorrectPercentage": 14.8,
+        "optionDistribution": { "A": 7, "B": 10, "C": 6, "D": 4 },
+        "options": {
+          "A": "Joule",
+          "B": "Calorie",
+          "C": "Watt",
+          "D": "Electron volt"
+        },
+        "correctOption": "C"
+      }
+    },
+    {
+      "questionId": "NEET-PHY-3",
+      "subject": "Physics",
+      "totalCount": 30,
+      "attempts": 30,
+      "correct": 21,
+      "incorrect": 9,
+      "accuracy": 70.0,
+      "viewable": true,
+      "modal": {
+        "questionText": "The dimensional formula for Planck's constant is:",
+        "subject": "Physics",
+        "totalAttempts": 30,
+        "optionAttempts": { "A": 10, "B": 8, "C": 7, "D": 5 },
+        "correctPercentage": 70.0,
+        "incorrectPercentage": 30.0,
+        "mostCommonIncorrectPercentage": 16.7,
+        "optionDistribution": { "A": 10, "B": 8, "C": 7, "D": 5 },
+        "options": {
+          "A": "ML^2T^{-1}",
+          "B": "MLT^{-2}",
+          "C": "ML^2T^{-2}",
+          "D": "ML^{-1}T^{-2}"
+        },
+        "correctOption": "A"
+      }
+    },
+    {
+      "questionId": "NEET-PHY-4",
+      "subject": "Physics",
+      "totalCount": 30,
+      "attempts": 25,
+      "correct": 18,
+      "incorrect": 7,
+      "accuracy": 72.0,
+      "viewable": true,
+      "modal": {
+        "questionText": "Which of the following is a scalar quantity?",
+        "subject": "Physics",
+        "totalAttempts": 25,
+        "optionAttempts": { "A": 6, "B": 8, "C": 7, "D": 4 },
+        "correctPercentage": 72.0,
+        "incorrectPercentage": 28.0,
+        "mostCommonIncorrectPercentage": 16.0,
+        "optionDistribution": { "A": 6, "B": 8, "C": 7, "D": 4 },
+        "options": {
+          "A": "Velocity",
+          "B": "Acceleration",
+          "C": "Force",
+          "D": "Work"
+        },
+        "correctOption": "D"
+      }
+    },
+    {
+      "questionId": "NEET-PHY-5",
+      "subject": "Physics",
+      "totalCount": 30,
+      "attempts": 29,
+      "correct": 20,
+      "incorrect": 9,
+      "accuracy": 69.0,
+      "viewable": true,
+      "modal": {
+        "questionText": "A body of mass 2 kg is moving with a velocity of 3 m/s. What is its kinetic energy?",
+        "subject": "Physics",
+        "totalAttempts": 29,
+        "optionAttempts": { "A": 7, "B": 9, "C": 8, "D": 5 },
+        "correctPercentage": 69.0,
+        "incorrectPercentage": 31.0,
+        "mostCommonIncorrectPercentage": 17.2,
+        "optionDistribution": { "A": 7, "B": 9, "C": 8, "D": 5 },
+        "options": {
+          "A": "9 J",
+          "B": "12 J",
+          "C": "6 J",
+          "D": "3 J"
+        },
+        "correctOption": "A"
+      }
+    }
+  ]
+}

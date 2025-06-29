@@ -1,19 +1,16 @@
 import React, { useMemo, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import type { Question, StudentResponse } from "@/DummyData/IndividualQuestionsData";
+import type { Question } from "../types/questions";
 
 interface QuestionViewModalProps {
   open: boolean;
   onClose: () => void;
   question: Question | null;
-  studentResponses?: StudentResponse[];
-  modalClassName?: string; // Add modalClassName prop
+  modalClassName?: string;
 }
 
-const TOTAL_ATTEMPTS = 2000;
-
-const QuestionViewModal: React.FC<QuestionViewModalProps> = ({ open, onClose, question, studentResponses = [], modalClassName }) => {
+const QuestionViewModal: React.FC<QuestionViewModalProps> = ({ open, onClose, question, modalClassName }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Always call hooks in the same order, regardless of props
@@ -35,46 +32,27 @@ const QuestionViewModal: React.FC<QuestionViewModalProps> = ({ open, onClose, qu
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open, onClose]);
 
-  // Option-wise counts (simulate or use real data if available)
-  const responses = useMemo(
-    () => {
-      if (!open || !question) return [];
-      return studentResponses.filter(
-        (r) => r.questionNo === question.number && r.subject === question.subject
-      );
-    },
-    [studentResponses, question, open]
-  );
-
   if (!open || !question) {
     return null;
   }
 
-  let optionCounts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
-  if (responses.length >= TOTAL_ATTEMPTS) {
-    responses.forEach((r) => {
-      if (optionCounts[r.selectedOption] !== undefined) optionCounts[r.selectedOption]++;
-    });
-  } else {
-    const base = [550, 720, 480, 250];
-    ["A", "B", "C", "D"].forEach((opt, i) => (optionCounts[opt] = base[i]));
-  }
-
-  const correctOpt = question.correctAnswer;
+  // Use modal data from API
+  const modal = question.modal;
+  const optionCounts = modal.optionAttempts;
+  const correctOpt = Object.keys(optionCounts).reduce((a, b) => optionCounts[a] > optionCounts[b] ? a : b);
   const incorrectCounts = { ...optionCounts };
   delete incorrectCounts[correctOpt];
-  const mostCommonIncorrect = Object.entries(incorrectCounts).reduce((a, b) => (a[1] > b[1] ? a : b))[0];
-
+  const mostCommonIncorrect = Object.keys(incorrectCounts).reduce((a, b) => incorrectCounts[a] > incorrectCounts[b] ? a : b);
   const correctCount = optionCounts[correctOpt];
-  const correctPct = Math.round((correctCount / TOTAL_ATTEMPTS) * 100);
+  const totalAttempts = modal.totalAttempts;
+  const correctPct = Math.round((correctCount / totalAttempts) * 100);
   const incorrectPct = 100 - correctPct;
-
-  const chartData = ["A", "B", "C", "D"].map((opt) => ({
+  const chartData = Object.keys(optionCounts).map(opt => ({
     option: opt,
-    count: optionCounts[opt] ?? 0,
+    count: optionCounts[opt],
     isCorrect: opt === correctOpt,
     isMostWrong: opt === mostCommonIncorrect,
-    percent: Math.round(((optionCounts[opt] ?? 0) / TOTAL_ATTEMPTS) * 100),
+    percent: Math.round(((optionCounts[opt] ?? 0) / totalAttempts) * 100),
   }));
 
   return (
@@ -89,10 +67,10 @@ const QuestionViewModal: React.FC<QuestionViewModalProps> = ({ open, onClose, qu
         <div className="flex items-center justify-between px-8 py-6 border-b bg-white/80 sticky top-0 z-10">
           <div className="flex flex-col gap-1">
             <span className="font-bold text-3xl text-gray-900 leading-tight">Q{question.number}</span>
-            <span className="text-lg text-gray-700 font-medium max-w-2xl truncate">{question.text}</span>
+            <span className="text-lg text-gray-700 font-medium max-w-2xl truncate">{modal.questionText}</span>
             <div className="flex gap-6 mt-2 text-base text-gray-600">
               <span><span className="font-semibold">Subject:</span> {question.subject}</span>
-              <span><span className="font-semibold">Total Attempts:</span> {TOTAL_ATTEMPTS}</span>
+              <span><span className="font-semibold">Total Attempts:</span> {modal.totalAttempts}</span>
             </div>
           </div>
           <button

@@ -11,26 +11,76 @@
 //   – Dummy dataset (600 students × 6 tests)
 // -----------------------------------------------------------------------------
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import DashboardCard from "@/components/ui/DashboardCard";
 import { format, isWithinInterval, subDays } from "date-fns";
 import CountUp from "@/components/ui/CountUp";
-import { SECTION1_DASHBOARD_DATASET } from "@/DummyData/Section1DashboardData";
 import { useFilter } from "@/lib/DashboardFilterContext";
 import FilterBar from "@/components/FilterBar";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import MonthlyPerformanceHistogram from "@/components/ui/analytics/MonthlyPerformanceHistogram";
 import AverageTotalScoreGauge from "./components/ui/AverageTotalScoreGauge";
+import { getDashboardData } from "./api/dashboard.api";
+import type { DashboardData, DashboardFilter } from "./types/dashboard";
 
 /* -------------------------------------------------------------------------- */
 /*                              Main Component                                */
 /* -------------------------------------------------------------------------- */
 export default function Section1Dashboard() {
-  // Get filter from context
+  // --- State and Effects for Data Fetching ---
+  // Backend devs: Replace mock API with actual endpoint
+  // Expected response type: DashboardData (see types/dashboard.ts)
+  // Update the request payload if filter schema changes
   const { filter } = useFilter();
-  const institutions = [...new Set(SECTION1_DASHBOARD_DATASET.map((d) => d.institution))];
-  const batches = [...new Set(SECTION1_DASHBOARD_DATASET.map((d) => d.batch))];
-  const classes = [...new Set(SECTION1_DASHBOARD_DATASET.map((d) => d.class))];
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Memoize fetchDashboardData so it doesn't get recreated on every render
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Map filter context to DashboardFilter type
+      const payload: DashboardFilter = {
+        fromDate: filter.dateRange.from.toISOString().slice(0, 10),
+        toDate: filter.dateRange.to.toISOString().slice(0, 10),
+        institution: filter.institution,
+        batch: filter.batch,
+        class: filter.class,
+        examType: filter.examType.toLowerCase() as DashboardFilter["examType"],
+        ...(filter.subject ? { subject: filter.subject } : {}),
+      };
+      const data = await getDashboardData(payload);
+      setDashboardData(data);
+    } catch (err) {
+      setError("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  if (loading) return <div className="p-10 text-center text-lg">Loading dashboard...</div>;
+  if (error) return <div className="p-10 text-center text-red-600">{error}</div>;
+  if (!dashboardData) return null;
+
+  // --- Derived Values from Fetched Data ---
+  // For dropdowns, use class keys from neetReadiness.classWisePercentages
+  const classOptions = Object.keys(dashboardData.neetReadiness.classWisePercentages);
+  // For batch dropdown, you may use a static list or infer from class naming if needed
+  const batchOptions = ["A", "B", "C"];
+
+  // Prepare risk breakdown for PieChart
+  const riskData = [
+    { name: "High Risk", value: dashboardData.riskBreakdown.highRiskPercentage, color: "#ef4444", insight: `${dashboardData.riskBreakdown.highRiskPercentage}% students at high risk` },
+    { name: "Medium Risk", value: dashboardData.riskBreakdown.mediumRiskPercentage, color: "#f59e42", insight: `${dashboardData.riskBreakdown.mediumRiskPercentage}% students at medium risk` },
+    { name: "Safe", value: dashboardData.riskBreakdown.safePercentage, color: "#10b981", insight: `${dashboardData.riskBreakdown.safePercentage}% students safe` },
+  ];
+
   // --- Exam Config ---
   const getExamConfig = () => {
     if (filter.examType === "Weekly") {
@@ -54,174 +104,51 @@ export default function Section1Dashboard() {
   };
   const examConfig = getExamConfig();
 
-  /* --------------------------- Scoped Dataset -------------------------- */
-  const scoped = useMemo(
-    () =>
-      SECTION1_DASHBOARD_DATASET.filter((d) => {
-        if (filter.institution !== "All" && d.institution !== filter.institution) return false;
-        if (filter.batch !== "All" && d.batch !== filter.batch) return false;
-        if (filter.class !== "All" && d.class !== filter.class) return false;
-        if (d.projected < filter.scoreRange[0] || d.projected > filter.scoreRange[1]) return false;
-        if (
-          !isWithinInterval(new Date(d.testDate), {
-            start: filter.dateRange.from,
-            end: filter.dateRange.to,
-          })
-        )
-          return false;
-        // Exam Type/Subject filter (inferred)
-        if (filter.examType === "Grand Test") {
-          // Grand Test: subject dropdown hidden, include all subjects
-          return true;
-        }
-        // For Weekly/Cumulative, filter by subject
-        if ((filter.examType === "Weekly" || filter.examType === "Cumulative") && filter.subject && d.subject !== filter.subject) return false;
-        return true;
-      }),
-    [filter],
-  );
-
-  /* ------------------------ KPI & Derived Values ----------------------- */
-  const kpi = useMemo(() => {
-    const testsTaken = scoped.length;
-    const totalCorrect = scoped.reduce((a, b) => a + b.correct, 0);
-    const totalAttempted = scoped.reduce((a, b) => a + b.attempted, 0);
-    // Accuracy relative to attempted, not max marks
-    const accuracy = totalAttempted ? ((totalCorrect / totalAttempted) * 100).toFixed(1) : '0.0';
-
-    // latest record per student (per subject)
-    const latest = new Map();
-    scoped
-      .sort((a, b) => +new Date(b.testDate) - +new Date(a.testDate))
-      .forEach((r) => {
-        if (!latest.has(r.studentId)) latest.set(r.studentId, r);
-      });
-    const latestArr = [...latest.values()];
-
-    // --- New KPIs ---
-    // All scores must be capped at examConfig.marks
-    const avgScore = latestArr.length ? (latestArr.reduce((a, b) => a + Math.min(b.projected, examConfig.marks), 0) / latestArr.length).toFixed(1) : '0';
-    const maxScore = latestArr.length ? Math.max(...latestArr.map(s => Math.min(s.projected, examConfig.marks))) : 0;
-    const minScore = latestArr.length ? Math.min(...latestArr.map(s => Math.max(0, Math.min(s.projected, examConfig.marks)))) : 0;
-    const above600 = latestArr.filter(s => Math.min(s.projected, examConfig.marks) >= 600).length;
-    const above500 = latestArr.filter(s => Math.min(s.projected, examConfig.marks) >= 500).length;
-    const above400 = latestArr.filter(s => Math.min(s.projected, examConfig.marks) >= 400).length;
-    // Readiness: % scoring >= 75% of max marks
-    const readiness = latestArr.length ? ((latestArr.filter(s => Math.min(s.projected, examConfig.marks) >= 0.75 * examConfig.marks).length / latestArr.length) * 100).toFixed(1) : '0';
-
-    // --- Custom KPIs for cards ---
-    // Average Attempt Rate (%) relative to max questions
-    const avgAttemptRate = latestArr.length && examConfig.questions
-      ? (
-          latestArr.reduce((sum, s) => sum + (s.attempted / examConfig.questions) * 100, 0) / latestArr.length
-        ).toFixed(1)
-      : '0.0';
-    // Top 10% Avg Score
-    const sortedByScore = [...latestArr].sort((a, b) => Math.min(b.projected, examConfig.marks) - Math.min(a.projected, examConfig.marks));
-    const top10Count = Math.max(1, Math.round(latestArr.length * 0.1));
-    const top10Avg = top10Count > 0
-      ? (sortedByScore.slice(0, top10Count).reduce((sum, s) => sum + Math.min(s.projected, examConfig.marks), 0) / top10Count).toFixed(1)
-      : '0.0';
-    // Bottom 10% Avg Score
-    const bottom10Avg = top10Count > 0
-      ? (sortedByScore.slice(-top10Count).reduce((sum, s) => sum + Math.min(s.projected, examConfig.marks), 0) / top10Count).toFixed(1)
-      : '0.0';
-
-    const topPerformer = latestArr.sort((a, b) => Math.min(b.projected, examConfig.marks) - Math.min(a.projected, examConfig.marks))[0];
-
-    // Risk buckets relative to current max marks
-    const riskBuckets = { "High Risk": 0, Medium: 0, Safe: 0 };
-    latestArr.forEach((r) => {
-      const score = Math.min(r.projected, examConfig.marks);
-      if (score < 0.4 * examConfig.marks) riskBuckets["High Risk"]++;
-      else if (score <= 0.7 * examConfig.marks) riskBuckets["Medium"]++;
-      else riskBuckets["Safe"]++;
-    });
-
-    // Improvement buckets (Improved/Neutral/Degraded)
-    const improveBuckets = { Improved: 0, Neutral: 0, Degraded: 0 };
-    latestArr.forEach((r) => {
-      const hist = scoped
-        .filter((h) => h.studentId === r.studentId)
-        .sort((a, b) => +new Date(b.testDate) - +new Date(a.testDate));
-      if (hist.length < 2) return improveBuckets.Neutral++;
-      const delta = Math.min(r.projected, examConfig.marks) - Math.min(hist[1].projected, examConfig.marks);
-      if (delta > 5) improveBuckets.Improved++;
-      else if (delta < -5) improveBuckets.Degraded++;
-      else improveBuckets.Neutral++;
-    });
-
-    return {
-      testsTaken,
-      accuracy,
-      topPerformer,
-      riskBuckets,
-      improveBuckets,
-      latestArr,
-      avgScore,
-      maxScore,
-      minScore,
-      above600,
-      above500,
-      above400,
-      readiness,
-      avgAttemptRate,
-      top10Avg,
-      bottom10Avg,
-    };
-  }, [scoped, examConfig]);
-
-  // --- NEET Readiness Dropdown State ---
-  const classOptions = ["Overall", ...new Set(SECTION1_DASHBOARD_DATASET.map((d) => d.class))];
-  const [readinessClass, setReadinessClass] = useState("Overall");
-
-  // --- NEET Readiness Calculation ---
-  const readinessArr = useMemo(() => {
-    if (readinessClass === "Overall") return kpi.latestArr;
-    return kpi.latestArr.filter((s) => s.class === readinessClass);
-  }, [kpi.latestArr, readinessClass]);
-  // Readiness relative to current max marks
-  const readinessPct = readinessArr.length && examConfig.marks
-    ? ((readinessArr.filter((s) => Math.min(s.projected, examConfig.marks) >= 0.75 * examConfig.marks).length / readinessArr.length) * 100).toFixed(1)
-    : "0.0";
-
-  // --- Top 10 Performer Dropdown State ---
-  const batchOptions = ['A', 'B', 'C'];
-  const classOptionsByBatch: Record<string, string[]> = {
-    A: Array.from({ length: 10 }, (_, i) => `11${String.fromCharCode(65 + i)}`),
-    B: Array.from({ length: 10 }, (_, i) => `12${String.fromCharCode(65 + i)}`),
-    C: Array.from({ length: 10 }, (_, i) => `13${String.fromCharCode(65 + i)}`),
-  };
-  const [topBatch, setTopBatch] = useState('A');
-  const [topClass, setTopClass] = useState('All');
-  const topClassOptions = ['All', ...classOptionsByBatch[topBatch]];
-
-  // --- Top 10 Performer Data ---
-  const top10Filtered = useMemo(() => {
-    let arr = [...kpi.latestArr];
-    // Simulate batch/class filtering (since dummy data doesn't have batch/class in this format)
-    if (topBatch !== 'All') arr = arr.filter(s => s.class.startsWith(topBatch === 'A' ? '11' : topBatch === 'B' ? '12' : '13'));
-    if (topClass !== 'All') arr = arr.filter(s => s.class === topClass);
-    // Cap scores at current max marks
-    return arr
-      .map(s => ({ ...s, projected: Math.min(s.projected, examConfig.marks) }))
-      .sort((a, b) => b.projected - a.projected)
-      .slice(0, 10);
-  }, [kpi.latestArr, topBatch, topClass, examConfig.marks]);
-
-  // --- Improvement Trend Card Data ---
-  const trendInterval = 30; // days
-  const today = new Date();
-  const trendPoints = [];
-  for (let i = 180; i >= 0; i -= trendInterval) {
-    const from = subDays(today, i);
-    const to = subDays(today, i - trendInterval);
-    const scores = kpi.latestArr.filter(r => isWithinInterval(new Date(r.testDate), { start: from, end: to }));
-    trendPoints.push({
-      date: format(from, 'MMM d'),
-      avg: scores.length ? (scores.reduce((a, b) => a + Math.min(b.projected, examConfig.marks), 0) / scores.length).toFixed(1) : 0
-    });
+  // --- Subject dropdown options based on examType ---
+  let subjectOptions: string[] = [];
+  if (filter.examType === "weekly") {
+    subjectOptions = ["Physics", "Chemistry", "Maths", "Zoology"];
+  } else if (filter.examType === "cumulative") {
+    subjectOptions = ["Physics + Botany", "Chemistry + Zoology"];
   }
+
+  // --- Performance Trend Data Selection ---
+  // Map examType to keys in dashboardData.performanceTrend
+  let trendData: { month: string; score: number }[] = [];
+  let trendSubject = "";
+  let trendMaxMarks = 0;
+  if (dashboardData.performanceTrend) {
+    // Normalize examType to match JSON keys
+    const examTypeKey = filter.examType.trim().toLowerCase();
+    // Normalize subject to match JSON keys
+    let subjectKey = filter.subject || "Physics";
+    if (examTypeKey === "weekly") {
+      // Fix subject name if needed
+      if (subjectKey.toLowerCase() === "math" || subjectKey.toLowerCase() === "maths") subjectKey = "Maths";
+      if (subjectKey.toLowerCase() === "zoology") subjectKey = "Zoology";
+      if (subjectKey.toLowerCase() === "chemistry") subjectKey = "Chemistry";
+      if (subjectKey.toLowerCase() === "physics") subjectKey = "Physics";
+      trendSubject = subjectKey;
+      trendData = dashboardData.performanceTrend.weekly[trendSubject] || [];
+      // Set max marks for weekly subjects
+      const maxMarksMap: Record<string, number> = { Physics: 120, Chemistry: 180, Maths: 200, Zoology: 240 };
+      trendMaxMarks = maxMarksMap[trendSubject] || 0;
+    } else if (examTypeKey === "cumulative") {
+      if (subjectKey.toLowerCase().includes("physics")) subjectKey = "Physics + Botany";
+      if (subjectKey.toLowerCase().includes("chemistry")) subjectKey = "Chemistry + Zoology";
+      trendSubject = subjectKey;
+      trendData = dashboardData.performanceTrend.cumulative[trendSubject] || [];
+      // Set max marks for cumulative subjects
+      const maxMarksMap: Record<string, number> = { "Physics + Botany": 400, "Chemistry + Zoology": 400 };
+      trendMaxMarks = maxMarksMap[trendSubject] || 0;
+    } else if (examTypeKey === "grand" || examTypeKey === "grand test") {
+      trendSubject = "Grand";
+      trendData = dashboardData.performanceTrend.grandTest.overall || [];
+      trendMaxMarks = 720;
+    }
+  }
+  // Debug log for chart data
+  console.log('Trend Data:', trendData, 'Subject:', trendSubject, 'Max Marks:', trendMaxMarks);
 
   /* ---------------------------------------------------------------------- */
   /*                                 JSX                                    */
@@ -231,29 +158,29 @@ export default function Section1Dashboard() {
       <main className="flex-1 overflow-y-auto px-6 md:px-12 py-10 space-y-12 max-w-7xl mx-auto w-full">
         {/* Section: Filters */}
         <div className="bg-white/80 rounded-2xl shadow-lg border border-blue-100 px-6 py-5 mb-2">
-          <FilterBar institutions={institutions} batches={batches} classes={classes} />
+          <FilterBar institutions={[]} batches={batchOptions} classes={classOptions} />
         </div>
         {/* --- PERFORMANCE ANALYTICS SECTION --- */}
         <section className="mb-12">
           {/* Row 1: Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-7 mb-12">
             { [
-              { label: 'Total Tests Conducted', value: <CountUp end={kpi.testsTaken} />, },
-              { label: 'Average Accuracy %', value: <><CountUp end={parseFloat(kpi.accuracy)} decimals={1} />%</>, },
+              { label: 'Total Tests Conducted', value: <CountUp end={dashboardData.totalTestConducted} />, },
+              { label: 'Average Accuracy %', value: <><CountUp end={dashboardData.avgAccuracyPercentage} decimals={1} />%</>, },
               { label: 'Average Total Score', value: (
                 <>
-                  <CountUp end={parseFloat(kpi.avgScore)} decimals={1} /> <span className="text-xs text-slate-400 font-semibold">/ {examConfig.marks}</span>
+                  <CountUp end={dashboardData.avgTotalScore} decimals={1} /> <span className="text-xs text-slate-400 font-semibold">/ {examConfig.marks}</span>
                 </>
               ) },
-              { label: 'Average Attempt Rate (%)', value: <CountUp end={parseFloat(kpi.avgAttemptRate)} decimals={1} />, color: '#f97316' },
+              { label: 'Average Attempt Rate (%)', value: <CountUp end={dashboardData.avgAttemptRatePercentage} decimals={1} />, color: '#f97316' },
               { label: 'Top 10% Avg Score', value: (
                 <>
-                  <CountUp end={parseFloat(kpi.top10Avg)} decimals={1} /> <span className="text-xs text-slate-400 font-semibold">/ {examConfig.marks}</span>
+                  <CountUp end={dashboardData.top10PercentAvgScore} decimals={1} /> <span className="text-xs text-slate-400 font-semibold">/ {examConfig.marks}</span>
                 </>
               ), color: '#1e40af' },
               { label: 'Bottom 10% Avg Score', value: (
                 <>
-                  <CountUp end={parseFloat(kpi.bottom10Avg)} decimals={1} /> <span className="text-xs text-slate-400 font-semibold">/ {examConfig.marks}</span>
+                  <CountUp end={dashboardData.bottom10PercentAvgScore} decimals={1} /> <span className="text-xs text-slate-400 font-semibold">/ {examConfig.marks}</span>
                 </>
               ), color: '#dc2626' },
             ].map((card, i) => (
@@ -274,35 +201,17 @@ export default function Section1Dashboard() {
             {/* Left: Score Distribution + New KPI Cards */}
             <div className="md:col-span-1 flex flex-col gap-6 min-w-[260px] max-w-[360px]">
               {/* Gauge Chart for Average Total Score */}
-              <AverageTotalScoreGauge avgScore={Number(kpi.avgScore)} maxMarks={examConfig.marks} />
+              <AverageTotalScoreGauge avgScore={dashboardData.avgTotalScore} maxMarks={examConfig.marks} />
               {/* New KPI Card: % Improving */}
               <div className="bg-white/90 p-4 rounded-2xl shadow-md border border-green-100 flex flex-col min-h-[56px] h-[56px] justify-center items-center transition-all duration-200">
-                <span className="text-[20px] font-bold text-emerald-600">{(() => {
-                  const total = kpi.latestArr?.length || 1;
-                  const improving = kpi.improveBuckets?.Improved || 0;
-                  return <CountUp end={parseFloat(((improving / total) * 100).toFixed(1))} decimals={1} suffix="%" />;
-                })()}</span>
+                <span className="text-[20px] font-bold text-emerald-600">
+                  <CountUp end={dashboardData.improvingStudentsPercentage} decimals={1} suffix="%" />
+                </span>
                 <span className="text-[12px] text-slate-500 mt-1 font-medium">% of Students Improving</span>
               </div>
               {/* New KPI Card: Best Performing Class */}
               <div className="bg-white/90 p-4 rounded-2xl shadow-md border border-blue-100 flex flex-col min-h-[56px] h-[56px] justify-center items-center transition-all duration-200">
-                <span className="text-[20px] font-bold text-blue-700">{(() => {
-                  if (filter.class !== 'All') return 'N/A';
-                  const byClass: Record<string, number[]> = {};
-                  kpi.latestArr?.forEach(s => {
-                    if (!byClass[s.class]) byClass[s.class] = [];
-                    byClass[s.class].push(Math.min(s.projected, examConfig.marks));
-                  });
-                  let best: string | null = null, bestAvg = -1;
-                  Object.entries(byClass).forEach(([cls, arr]) => {
-                    const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
-                    if (avg > bestAvg) { bestAvg = avg; best = cls; }
-                  });
-                  if (!best) return 'N/A';
-                  // Enrich: show avg score
-                  const avg = byClass[best].reduce((a, b) => a + b, 0) / byClass[best].length;
-                  return <>{best} <span className="text-[14px] text-blue-400 font-semibold ml-1">(<CountUp end={avg} decimals={1} />)</span></>;
-                })()}</span>
+                <span className="text-[20px] font-bold text-blue-700">{dashboardData.bestPerformingClass}</span>
                 <span className="text-[12px] text-slate-500 mt-1 font-medium">Best Performing Class</span>
               </div>
             </div>
@@ -314,20 +223,7 @@ export default function Section1Dashboard() {
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
                     <Pie
-                      data={(() => {
-                        let high = 0, med = 0, low = 0;
-                        (kpi.latestArr || []).forEach((s) => {
-                          const acc = (s.correct / (s.attempted || 1)) * 100;
-                          if (s.projected < 400 || acc < 30) high++;
-                          else if ((s.projected <= 500 && s.projected >= 400) || (acc >= 30 && acc <= 50)) med++;
-                          else low++;
-                        });
-                        return [
-                          { name: 'High Risk', value: high, color: '#ef4444', insight: `${high} students have accuracy below 30% or score < 400` },
-                          { name: 'Medium Risk', value: med, color: '#f59e42', insight: `${med} students are in the 400-500 range or 30-50% accuracy` },
-                          { name: 'Safe', value: low, color: '#10b981', insight: `${low} students are above 500 and >50% accuracy` },
-                        ];
-                      })()}
+                      data={riskData}
                       dataKey="value"
                       nameKey="name"
                       cx="50%"
@@ -357,10 +253,9 @@ export default function Section1Dashboard() {
                         );
                       }}
                     >
-                      {(() => {
-                        const colors = ['#ef4444', '#f59e42', '#10b981'];
-                        return colors.map((color) => <Cell key={color} fill={color} />);
-                      })()}
+                      {riskData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
                     </Pie>
                     <Tooltip content={({ active, payload }) => {
                       if (active && payload && payload.length) {
@@ -378,58 +273,12 @@ export default function Section1Dashboard() {
               </div>
               {/* New KPI Card: Most Improved Subject */}
               <div className="bg-white/90 p-4 rounded-2xl shadow-md border border-amber-100 flex flex-col min-h-[56px] h-[56px] justify-center items-center transition-all duration-200">
-                <span className="text-[20px] font-bold text-amber-600">{
-                  (() => {
-                    // Find subject with highest percentage improvement
-                    const bySubject: Record<string, { first: number, last: number, count: number }> = {};
-                    kpi.latestArr?.forEach(s => {
-                      if (!bySubject[s.subject]) bySubject[s.subject] = { first: Math.min(s.projected, examConfig.marks), last: Math.min(s.projected, examConfig.marks), count: 1 };
-                      else {
-                        bySubject[s.subject].last = Math.min(s.projected, examConfig.marks);
-                        bySubject[s.subject].count++;
-                      }
-                    });
-                    let best: string | null = null, bestPct = -Infinity;
-                    let worst: string | null = null, worstPct = Infinity;
-                    Object.entries(bySubject).forEach(([subj, obj]) => {
-                      const pct = obj.first ? ((obj.last - obj.first) / obj.first) * 100 : 0;
-                      if (pct > bestPct) { bestPct = pct; best = subj; }
-                      if (pct < worstPct) { worstPct = pct; worst = subj; }
-                    });
-                    // Prevent same subject for both
-                    if (best === worst) worst = null;
-                    if (!best) return 'N/A';
-                    return <>{best} <span className="text-[16px] text-amber-400 font-semibold ml-1">({Math.round(bestPct)}%)</span></>;
-                  })()
-                }</span>
+                <span className="text-[20px] font-bold text-amber-600">{dashboardData.mostImprovedSubject}</span>
                 <span className="text-[12px] text-slate-500 mt-1 font-medium">Most Improved Subject</span>
               </div>
               {/* New KPI Card: Most Dropped Subject */}
               <div className="bg-white/90 p-4 rounded-2xl shadow-md border border-slate-100 flex flex-col min-h-[56px] h-[56px] justify-center items-center transition-all duration-200">
-                <span className="text-[20px] font-bold text-slate-700">{
-                  (() => {
-                    // Find subject with lowest percentage improvement
-                    const bySubject: Record<string, { first: number, last: number, count: number }> = {};
-                    kpi.latestArr?.forEach(s => {
-                      if (!bySubject[s.subject]) bySubject[s.subject] = { first: Math.min(s.projected, examConfig.marks), last: Math.min(s.projected, examConfig.marks), count: 1 };
-                      else {
-                        bySubject[s.subject].last = Math.min(s.projected, examConfig.marks);
-                        bySubject[s.subject].count++;
-                      }
-                    });
-                    let best: string | null = null, bestPct = -Infinity;
-                    let worst: string | null = null, worstPct = Infinity;
-                    Object.entries(bySubject).forEach(([subj, obj]) => {
-                      const pct = obj.first ? ((obj.last - obj.first) / obj.first) * 100 : 0;
-                      if (pct > bestPct) { bestPct = pct; best = subj; }
-                      if (pct < worstPct) { worstPct = pct; worst = subj; }
-                    });
-                    // Prevent same subject for both
-                    if (best === worst) worst = null;
-                    if (!worst || worst === best) return 'N/A';
-                    return <>{worst} <span className="text-[16px] text-slate-400 font-semibold ml-1">({Math.round(worstPct)}%)</span></>;
-                  })()
-                }</span>
+                <span className="text-[20px] font-bold text-slate-700">{dashboardData.mostDroppedSubject}</span>
                 <span className="text-[12px] text-slate-500 mt-1 font-medium">Most Dropped Subject</span>
               </div>
             </div>
@@ -441,21 +290,22 @@ export default function Section1Dashboard() {
                   <span className="text-base font-bold text-blue-900 tracking-wide">NEET Readiness</span>
                   <select
                     className="ml-2 px-2 py-1 text-xs rounded border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                    value={readinessClass}
-                    onChange={e => setReadinessClass(e.target.value)}
+                    value={"Overall"}
+                    onChange={() => {}}
                   >
+                    <option value="Overall">Overall</option>
                     {classOptions.map(opt => (
                       <option key={opt} value={opt}>{opt}</option>
                     ))}
                   </select>
                 </div>
                 <div className="flex-1 flex flex-col justify-center items-center">
-                  <span className="text-5xl font-extrabold text-emerald-600 drop-shadow-sm"><CountUp end={parseFloat(readinessPct)} decimals={1} suffix="%" /></span>
+                  <span className="text-5xl font-extrabold text-emerald-600 drop-shadow-sm"><CountUp end={dashboardData.neetReadiness.overallPercentage} decimals={1} suffix="%" /></span>
                   <span className="text-[14px] text-slate-500 mt-2 font-medium">% students scoring ≥ 75% of max marks</span>
                 </div>
               </div>
               {/* Improvement Trend Card (larger, with Recharts) */}
-              <MonthlyPerformanceHistogram />
+              <MonthlyPerformanceHistogram trendData={trendData} maxMarks={trendMaxMarks} subject={trendSubject} />
             </div>
           </div>
         </section>
@@ -466,16 +316,30 @@ export default function Section1Dashboard() {
               <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-4">
                 <div className="flex flex-col flex-1 min-w-[120px]">
                   <label className="text-xs text-slate-500 font-semibold mb-1">Select Batch</label>
-                  <select className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-200" value={topBatch} onChange={e => { setTopBatch(e.target.value); setTopClass('All'); }}>
+                  <select className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-200" value={batchOptions[0]} onChange={() => {}}>
                     {batchOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>
                 <div className="flex flex-col flex-1 min-w-[120px]">
                   <label className="text-xs text-slate-500 font-semibold mb-1">Select Class</label>
-                  <select className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-200" value={topClass} onChange={e => setTopClass(e.target.value)}>
-                    {topClassOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  <select className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-200" value={"All"} onChange={() => {}}>
+                    <option value="All">All</option>
+                    {classOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>
+                {/* Subject Filter (only for weekly/cumulative) */}
+                {subjectOptions.length > 0 && (
+                  <div className="flex flex-col flex-1 min-w-[120px]">
+                    <label className="text-xs text-slate-500 font-semibold mb-1">Select Subject</label>
+                    <select
+                      className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-200"
+                      value={filter.subject || subjectOptions[0]}
+                      onChange={e => {/* update filter context here */}}
+                    >
+                      {subjectOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                )}
               </div>
               <div className="overflow-x-auto rounded-xl border border-blue-50 bg-white/80">
                 <table className="min-w-full text-sm">
@@ -488,12 +352,12 @@ export default function Section1Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {top10Filtered.map((s, i) => (
+                    {dashboardData.top10Performers.map((s, i) => (
                       <tr key={i} className="border-b border-blue-50 hover:bg-blue-100/30 transition-all duration-200 text-center">
                         <td className="py-2 text-blue-900 font-semibold">{i + 1}</td>
-                        <td className="py-2 text-blue-900">{s.studentName}</td>
+                        <td className="py-2 text-blue-900">{s.name}</td>
                         <td className="py-2 text-blue-900">{s.class}</td>
-                        <td className="py-2 font-medium text-blue-700">{s.projected}</td>
+                        <td className="py-2 font-medium text-blue-700">{s.score}</td>
                       </tr>
                     ))}
                   </tbody>

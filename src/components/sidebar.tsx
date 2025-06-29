@@ -7,8 +7,8 @@ const menu = [
 	{ label: "Dashboard", icon: <Home className="w-5 h-5" />, href: "/" },
 	{ label: "Question Insights", icon: <ListChecks className="w-5 h-5" />, href: "/individual-questions" },
 	{ label: "Student Performance", icon: <BarChart3 className="w-5 h-5" />, href: "/performance" },
-	//{ label: "Class & Batch Trends", icon: <ListChecks className="w-5 h-5" />, href: "/management-drilldown" },
 	{ label: "Performance Insights", icon: <BarChart3 className="w-5 h-5" />, href: "/performance-insights" },
+	{ label: "Uploads", icon: <ListChecks className="w-5 h-5" />, href: "/management-drilldown" },
 	// { label: "Downloadable Reports", icon: <FileText className="w-5 h-5" />, href: "#" },
 	// { label: "System Settings", icon: <Settings className="w-5 h-5" />, href: "#" },
 ];

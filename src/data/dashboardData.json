@@ -1,0 +1,156 @@
+{
+  "totalTestConducted": 42,
+  "avgAccuracyPercentage": 76.3,
+  "avgTotalScore": 512,
+  "avgAttemptRatePercentage": 88.5,
+  "top10PercentAvgScore": 670,
+  "bottom10PercentAvgScore": 320,
+  "averageTotalScore": 512,
+  "riskBreakdown": {
+    "highRiskPercentage": 12,
+    "mediumRiskPercentage": 28,
+    "safePercentage": 60
+  },
+  "neetReadiness": {
+    "overallPercentage": 74,
+    "classWisePercentages": {
+      "11A": 78,
+      "11B": 64,
+      "11C": 70,
+      "12A": 82,
+      "12B": 75,
+      "12C": 68,
+      "12D": 80,
+      "12E": 72,
+      "12F": 85,
+      "12G": 90
+    }
+  },
+  "improvingStudentsPercentage": 34,
+  "mostImprovedSubject": "Physics",
+  "bestPerformingClass": "12G",
+  "mostDroppedSubject": "Botany",
+  "performanceTrend": {
+    "weekly": {
+      "Physics": [
+        { "month": "Feb 2025", "score": 95 },
+        { "month": "Mar 2025", "score": 110 },
+        { "month": "Apr 2025", "score": 105 },
+        { "month": "May 2025", "score": 120 },
+        { "month": "Jun 2025", "score": 115 }
+      ],
+      "Chemistry": [
+        { "month": "Feb 2025", "score": 150 },
+        { "month": "Mar 2025", "score": 160 },
+        { "month": "Apr 2025", "score": 170 },
+        { "month": "May 2025", "score": 180 },
+        { "month": "Jun 2025", "score": 175 }
+      ],
+      "Maths": [
+        { "month": "Feb 2025", "score": 180 },
+        { "month": "Mar 2025", "score": 190 },
+        { "month": "Apr 2025", "score": 185 },
+        { "month": "May 2025", "score": 200 },
+        { "month": "Jun 2025", "score": 195 }
+      ],
+      "Zoology": [
+        { "month": "Feb 2025", "score": 200 },
+        { "month": "Mar 2025", "score": 210 },
+        { "month": "Apr 2025", "score": 220 },
+        { "month": "May 2025", "score": 240 },
+        { "month": "Jun 2025", "score": 230 }
+      ]
+    },
+    "cumulative": {
+      "Physics + Botany": [
+        { "month": "Feb 2025", "score": 500 },
+        { "month": "Mar 2025", "score": 520 },
+        { "month": "Apr 2025", "score": 540 },
+        { "month": "May 2025", "score": 560 },
+        { "month": "Jun 2025", "score": 530 }
+      ],
+      "Chemistry + Zoology": [
+        { "month": "Feb 2025", "score": 490 },
+        { "month": "Mar 2025", "score": 510 },
+        { "month": "Apr 2025", "score": 530 },
+        { "month": "May 2025", "score": 550 },
+        { "month": "Jun 2025", "score": 520 }
+      ]
+    },
+    "grandTest": {
+      "overall": [
+        { "month": "Feb 2025", "score": 520 },
+        { "month": "Mar 2025", "score": 540 },
+        { "month": "Apr 2025", "score": 560 },
+        { "month": "May 2025", "score": 580 },
+        { "month": "Jun 2025", "score": 550 }
+      ]
+    }
+  },
+  "top10Performers": [
+    { "name": "Aarav S.", "score": 710, "class": "12G", "section": "G" },
+    { "name": "Diya R.", "score": 705, "class": "12F", "section": "F" },
+    { "name": "Kabir T.", "score": 700, "class": "12A", "section": "A" },
+    { "name": "Meera K.", "score": 695, "class": "12B", "section": "B" },
+    { "name": "Rohan P.", "score": 690, "class": "12C", "section": "C" },
+    { "name": "Ishaan V.", "score": 685, "class": "12D", "section": "D" },
+    { "name": "Saanvi L.", "score": 680, "class": "12E", "section": "E" },
+    { "name": "Anaya J.", "score": 675, "class": "11A", "section": "A" },
+    { "name": "Vivaan M.", "score": 670, "class": "11B", "section": "B" },
+    { "name": "Aadhya N.", "score": 665, "class": "11C", "section": "C" }
+  ],
+  "top10StudentsByClass": {
+    "11A": [
+      { "name": "Anaya J.", "score": 675, "section": "A" },
+      { "name": "Riya S.", "score": 650, "section": "A" },
+      { "name": "Amit K.", "score": 640, "section": "A" }
+    ],
+    "11B": [
+      { "name": "Vivaan M.", "score": 670, "section": "B" },
+      { "name": "Priya D.", "score": 630, "section": "B" },
+      { "name": "Sahil G.", "score": 620, "section": "B" }
+    ],
+    "11C": [
+      { "name": "Aadhya N.", "score": 665, "section": "C" },
+      { "name": "Karan P.", "score": 610, "section": "C" },
+      { "name": "Sneha T.", "score": 600, "section": "C" }
+    ],
+    "12A": [
+      { "name": "Kabir T.", "score": 700, "section": "A" },
+      { "name": "Maya S.", "score": 660, "section": "A" },
+      { "name": "Rahul V.", "score": 650, "section": "A" }
+    ],
+    "12B": [
+      { "name": "Meera K.", "score": 695, "section": "B" },
+      { "name": "Aarush D.", "score": 640, "section": "B" },
+      { "name": "Simran F.", "score": 630, "section": "B" }
+    ],
+    "12C": [
+      { "name": "Rohan P.", "score": 690, "section": "C" },
+      { "name": "Nisha L.", "score": 620, "section": "C" },
+      { "name": "Yash S.", "score": 610, "section": "C" }
+    ],
+    "12D": [
+      { "name": "Ishaan V.", "score": 685, "section": "D" },
+      { "name": "Aanya B.", "score": 650, "section": "D" },
+      { "name": "Dev P.", "score": 640, "section": "D" }
+    ],
+    "12E": [
+      { "name": "Saanvi L.", "score": 680, "section": "E" },
+      { "name": "Aditi R.", "score": 660, "section": "E" },
+      { "name": "Manav S.", "score": 650, "section": "E" }
+    ],
+    "12F": [
+      { "name": "Diya R.", "score": 705, "section": "F" },
+      { "name": "Rudra K.", "score": 670, "section": "F" },
+      { "name": "Tara S.", "score": 660, "section": "F" }
+    ],
+    "12G": [
+      { "name": "Aarav S.", "score": 710, "section": "G" },
+      { "name": "Neha T.", "score": 690, "section": "G" },
+      { "name": "Kunal M.", "score": 680, "section": "G" }
+    ]
+  }
+}
+
+
