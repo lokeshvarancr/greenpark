@@ -1,13 +1,16 @@
 import './App.css';
-import Section1Dashboard from './Section1Dashboard';
-import IndividualQuestions from './IndividualQuestions';
-import Performancetab from './Performancetab';
-import ManagementDrilldownPage from './ManagementDrillDown';
-import PerformanceInsights from './PerformanceInsights';
-import Sidebar from './components/sidebar';
-import Footer from './components/footer';
+import Sidebar from './dashboard/components/sidebar';
+import Footer from './dashboard/components/footer';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { FilterProvider } from '@/lib/DashboardFilterContext';
+// Import all dashboard pages from the central index
+import {
+  Section1Dashboard,
+  IndividualQuestions,
+  Performancetab,
+  ManagementDrilldownPage,
+  PerformanceInsights
+} from './dashboard/pages';
 
 function App() {
   return (

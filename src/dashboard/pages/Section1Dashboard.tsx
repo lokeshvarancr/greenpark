@@ -1,16 +1,3 @@
-// Section1Dashboard.jsx — FINAL, FULLY‑COMPILED CODE
-// -----------------------------------------------------------------------------
-// * Fully self‑contained; compiles with React + Tailwind + shadcn/ui + Recharts
-// * Implements Section 1 of NEET Evaluation Dashboard with:
-//   – Filters (Institution ▸ Batch ▸ Class ▸ Score Range)
-//   – KPI strip (Total Tests, Weighted Accuracy, Top Performer, Risk Donut, Improvement Donut)
-//   – Accuracy‑by‑Attempt bucket bar chart (<50 %, 50–75 %, >75 %)
-//   – Top / Bottom classes OR students list (context‑aware)
-//   – Plateau Detector (≥5 lowest‑variance students)
-//   – Top‑10 Rank list adaptable to current scope
-//   – Dummy dataset (600 students × 6 tests)
-// -----------------------------------------------------------------------------
-
 import { useCallback, useEffect, useState } from "react";
 import DashboardCard from "@/components/ui/DashboardCard";
 import { format, isWithinInterval, subDays } from "date-fns";
@@ -19,29 +6,20 @@ import { useFilter } from "@/lib/DashboardFilterContext";
 import FilterBar from "@/components/FilterBar";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import MonthlyPerformanceHistogram from "@/components/ui/analytics/MonthlyPerformanceHistogram";
-import AverageTotalScoreGauge from "./components/ui/AverageTotalScoreGauge";
-import { getDashboardData } from "./api/dashboard.api";
-import type { DashboardData, DashboardFilter } from "./types/dashboard";
+import AverageTotalScoreGauge from "../../components/ui/AverageTotalScoreGauge";
+import { getDashboardData } from "../../api/dashboard.api";
+import type { DashboardData, DashboardFilter } from "../../types/dashboard";
 
-/* -------------------------------------------------------------------------- */
-/*                              Main Component                                */
-/* -------------------------------------------------------------------------- */
 export default function Section1Dashboard() {
-  // --- State and Effects for Data Fetching ---
-  // Backend devs: Replace mock API with actual endpoint
-  // Expected response type: DashboardData (see types/dashboard.ts)
-  // Update the request payload if filter schema changes
   const { filter } = useFilter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Memoize fetchDashboardData so it doesn't get recreated on every render
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Map filter context to DashboardFilter type
       const payload: DashboardFilter = {
         fromDate: filter.dateRange.from.toISOString().slice(0, 10),
         toDate: filter.dateRange.to.toISOString().slice(0, 10),
@@ -68,20 +46,15 @@ export default function Section1Dashboard() {
   if (error) return <div className="p-10 text-center text-red-600">{error}</div>;
   if (!dashboardData) return null;
 
-  // --- Derived Values from Fetched Data ---
-  // For dropdowns, use class keys from neetReadiness.classWisePercentages
   const classOptions = Object.keys(dashboardData.neetReadiness.classWisePercentages);
-  // For batch dropdown, you may use a static list or infer from class naming if needed
   const batchOptions = ["A", "B", "C"];
 
-  // Prepare risk breakdown for PieChart
   const riskData = [
     { name: "High Risk", value: dashboardData.riskBreakdown.highRiskPercentage, color: "#ef4444", insight: `${dashboardData.riskBreakdown.highRiskPercentage}% students at high risk` },
     { name: "Medium Risk", value: dashboardData.riskBreakdown.mediumRiskPercentage, color: "#f59e42", insight: `${dashboardData.riskBreakdown.mediumRiskPercentage}% students at medium risk` },
     { name: "Safe", value: dashboardData.riskBreakdown.safePercentage, color: "#10b981", insight: `${dashboardData.riskBreakdown.safePercentage}% students safe` },
   ];
 
-  // --- Exam Config ---
   const getExamConfig = () => {
     if (filter.examType === "Weekly") {
       switch (filter.subject) {
@@ -104,7 +77,6 @@ export default function Section1Dashboard() {
   };
   const examConfig = getExamConfig();
 
-  // --- Subject dropdown options based on examType ---
   let subjectOptions: string[] = [];
   if (filter.examType === "weekly") {
     subjectOptions = ["Physics", "Chemistry", "Maths", "Zoology"];
@@ -112,25 +84,19 @@ export default function Section1Dashboard() {
     subjectOptions = ["Physics + Botany", "Chemistry + Zoology"];
   }
 
-  // --- Performance Trend Data Selection ---
-  // Map examType to keys in dashboardData.performanceTrend
   let trendData: { month: string; score: number }[] = [];
   let trendSubject = "";
   let trendMaxMarks = 0;
   if (dashboardData.performanceTrend) {
-    // Normalize examType to match JSON keys
     const examTypeKey = filter.examType.trim().toLowerCase();
-    // Normalize subject to match JSON keys
     let subjectKey = filter.subject || "Physics";
     if (examTypeKey === "weekly") {
-      // Fix subject name if needed
       if (subjectKey.toLowerCase() === "math" || subjectKey.toLowerCase() === "maths") subjectKey = "Maths";
       if (subjectKey.toLowerCase() === "zoology") subjectKey = "Zoology";
       if (subjectKey.toLowerCase() === "chemistry") subjectKey = "Chemistry";
       if (subjectKey.toLowerCase() === "physics") subjectKey = "Physics";
       trendSubject = subjectKey;
       trendData = dashboardData.performanceTrend.weekly[trendSubject] || [];
-      // Set max marks for weekly subjects
       const maxMarksMap: Record<string, number> = { Physics: 120, Chemistry: 180, Maths: 200, Zoology: 240 };
       trendMaxMarks = maxMarksMap[trendSubject] || 0;
     } else if (examTypeKey === "cumulative") {
@@ -138,7 +104,6 @@ export default function Section1Dashboard() {
       if (subjectKey.toLowerCase().includes("chemistry")) subjectKey = "Chemistry + Zoology";
       trendSubject = subjectKey;
       trendData = dashboardData.performanceTrend.cumulative[trendSubject] || [];
-      // Set max marks for cumulative subjects
       const maxMarksMap: Record<string, number> = { "Physics + Botany": 400, "Chemistry + Zoology": 400 };
       trendMaxMarks = maxMarksMap[trendSubject] || 0;
     } else if (examTypeKey === "grand" || examTypeKey === "grand test") {
@@ -147,42 +112,37 @@ export default function Section1Dashboard() {
       trendMaxMarks = 720;
     }
   }
-  // Debug log for chart data
-  console.log('Trend Data:', trendData, 'Subject:', trendSubject, 'Max Marks:', trendMaxMarks);
 
-  /* ---------------------------------------------------------------------- */
-  /*                                 JSX                                    */
-  /* ---------------------------------------------------------------------- */
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-gradient-to-br from-slate-100 to-blue-50">
-      <main className="flex-1 overflow-y-auto px-6 md:px-12 py-10 space-y-12 max-w-7xl mx-auto w-full">
+    <div className="flex-1 flex flex-col min-h-screen">
+      <main className="flex-1 overflow-y-auto px-6 md:px-12 py-10 space-y-12 mx-auto w-full">
         {/* Section: Filters */}
         <div className="bg-white/80 rounded-2xl shadow-lg border border-blue-100 px-6 py-5 mb-2">
           <FilterBar institutions={[]} batches={batchOptions} classes={classOptions} />
         </div>
+
         {/* --- PERFORMANCE ANALYTICS SECTION --- */}
         <section className="mb-12">
           {/* Row 1: Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-7 mb-12">
-            { [
-              { label: 'Total Tests Conducted', value: <CountUp end={dashboardData.totalTestConducted} />, },
-              { label: 'Average Accuracy %', value: <><CountUp end={dashboardData.avgAccuracyPercentage} decimals={1} />%</>, },
-              { label: 'Average Total Score', value: (
-                <>
-                  <CountUp end={dashboardData.avgTotalScore} decimals={1} /> <span className="text-xs text-slate-400 font-semibold">/ {examConfig.marks}</span>
-                </>
-              ) },
+            {[
+              { label: 'Total Tests Conducted', value: <CountUp end={dashboardData.totalTestConducted} /> },
+              { label: 'Average Accuracy %', value: <><CountUp end={dashboardData.avgAccuracyPercentage} decimals={1} />%</> },
+              {
+                label: 'Average Total Score',
+                value: <><CountUp end={dashboardData.avgTotalScore} decimals={1} /> <span className="text-xs text-slate-400 font-semibold">/ {examConfig.marks}</span></>
+              },
               { label: 'Average Attempt Rate (%)', value: <CountUp end={dashboardData.avgAttemptRatePercentage} decimals={1} />, color: '#f97316' },
-              { label: 'Top 10% Avg Score', value: (
-                <>
-                  <CountUp end={dashboardData.top10PercentAvgScore} decimals={1} /> <span className="text-xs text-slate-400 font-semibold">/ {examConfig.marks}</span>
-                </>
-              ), color: '#1e40af' },
-              { label: 'Bottom 10% Avg Score', value: (
-                <>
-                  <CountUp end={dashboardData.bottom10PercentAvgScore} decimals={1} /> <span className="text-xs text-slate-400 font-semibold">/ {examConfig.marks}</span>
-                </>
-              ), color: '#dc2626' },
+              {
+                label: 'Top 10% Avg Score',
+                value: <><CountUp end={dashboardData.top10PercentAvgScore} decimals={1} /> <span className="text-xs text-slate-400 font-semibold">/ {examConfig.marks}</span></>,
+                color: '#1e40af'
+              },
+              {
+                label: 'Bottom 10% Avg Score',
+                value: <><CountUp end={dashboardData.bottom10PercentAvgScore} decimals={1} /> <span className="text-xs text-slate-400 font-semibold">/ {examConfig.marks}</span></>,
+                color: '#dc2626'
+              },
             ].map((card, i) => (
               <div
                 key={card.label}
@@ -193,32 +153,37 @@ export default function Section1Dashboard() {
                 <span className="text-[32px] font-extrabold drop-shadow-sm group-hover:text-blue-700 transition-colors flex items-end gap-1 text-center" style={card.color ? { color: card.color } : {}}>{card.value}</span>
                 <div className="absolute right-4 bottom-4 opacity-10 group-hover:opacity-20 transition-opacity text-6xl font-black select-none pointer-events-none text-blue-200">{i + 1}</div>
               </div>
-            )) }
+            ))}
           </div>
 
           {/* Row 2: Main Visuals Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {/* Left: Score Distribution + New KPI Cards */}
-            <div className="md:col-span-1 flex flex-col gap-6 min-w-[260px] max-w-[360px]">
-              {/* Gauge Chart for Average Total Score */}
-              <AverageTotalScoreGauge avgScore={dashboardData.avgTotalScore} maxMarks={examConfig.marks} />
-              {/* New KPI Card: % Improving */}
+            {/* Left: Score Distribution + KPI Cards */}
+            <div className="md:col-span-1 flex flex-col gap-6">
+              {/* Gauge Chart with fixed aspect ratio container */}
+              <div className="bg-white/90 p-4 rounded-2xl shadow-md border border-blue-100 w-full h-[320px]">
+                <AverageTotalScoreGauge
+                  avgScore={dashboardData.avgTotalScore}
+                  maxMarks={examConfig.marks}
+                />
+              </div>
+
               <div className="bg-white/90 p-4 rounded-2xl shadow-md border border-green-100 flex flex-col min-h-[56px] h-[56px] justify-center items-center transition-all duration-200">
                 <span className="text-[20px] font-bold text-emerald-600">
                   <CountUp end={dashboardData.improvingStudentsPercentage} decimals={1} suffix="%" />
                 </span>
                 <span className="text-[12px] text-slate-500 mt-1 font-medium">% of Students Improving</span>
               </div>
-              {/* New KPI Card: Best Performing Class */}
+
               <div className="bg-white/90 p-4 rounded-2xl shadow-md border border-blue-100 flex flex-col min-h-[56px] h-[56px] justify-center items-center transition-all duration-200">
                 <span className="text-[20px] font-bold text-blue-700">{dashboardData.bestPerformingClass}</span>
                 <span className="text-[12px] text-slate-500 mt-1 font-medium">Best Performing Class</span>
               </div>
             </div>
-            {/* Center: Risk Breakdown Pie + New KPI Cards */}
-            <div className="md:col-span-1 flex flex-col gap-6 min-w-[260px] max-w-[360px]">
-              {/* Risk Breakdown Pie Chart */}
-              <div className="bg-white/90 p-8 rounded-2xl shadow-md border border-red-100 flex flex-col min-h-[320px] h-[0px] justify-between items-center">
+
+            {/* Center: Risk Breakdown Pie + KPI Cards */}
+            <div className="md:col-span-1 flex flex-col gap-6">
+              <div className="bg-white/90 p-8 rounded-2xl shadow-md border border-red-100 flex flex-col min-h-[320px] justify-between items-center">
                 <span className="text-lg font-bold text-red-900 mb-2 tracking-wide">Risk Breakdown</span>
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
@@ -271,27 +236,27 @@ export default function Section1Dashboard() {
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              {/* New KPI Card: Most Improved Subject */}
+
               <div className="bg-white/90 p-4 rounded-2xl shadow-md border border-amber-100 flex flex-col min-h-[56px] h-[56px] justify-center items-center transition-all duration-200">
                 <span className="text-[20px] font-bold text-amber-600">{dashboardData.mostImprovedSubject}</span>
                 <span className="text-[12px] text-slate-500 mt-1 font-medium">Most Improved Subject</span>
               </div>
-              {/* New KPI Card: Most Dropped Subject */}
+
               <div className="bg-white/90 p-4 rounded-2xl shadow-md border border-slate-100 flex flex-col min-h-[56px] h-[56px] justify-center items-center transition-all duration-200">
                 <span className="text-[20px] font-bold text-slate-700">{dashboardData.mostDroppedSubject}</span>
                 <span className="text-[12px] text-slate-500 mt-1 font-medium">Most Dropped Subject</span>
               </div>
             </div>
+
             {/* Right: NEET Readiness & Improvement Trend */}
-            <div className="flex flex-col gap-6 h-full min-w-[260px] max-w-[360px]">
-              {/* NEET Readiness Card (reduced height) */}
+            <div className="flex flex-col gap-6">
               <div className="bg-white/90 p-6 rounded-2xl shadow-md border border-blue-100 flex flex-col min-h-[160px] h-[160px] flex-1 relative items-center justify-center">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-base font-bold text-blue-900 tracking-wide">NEET Readiness</span>
                   <select
                     className="ml-2 px-2 py-1 text-xs rounded border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
                     value={"Overall"}
-                    onChange={() => {}}
+                    onChange={() => { }}
                   >
                     <option value="Overall">Overall</option>
                     {classOptions.map(opt => (
@@ -304,67 +269,71 @@ export default function Section1Dashboard() {
                   <span className="text-[14px] text-slate-500 mt-2 font-medium">% students scoring ≥ 75% of max marks</span>
                 </div>
               </div>
-              {/* Improvement Trend Card (larger, with Recharts) */}
+
               <MonthlyPerformanceHistogram trendData={trendData} maxMarks={trendMaxMarks} subject={trendSubject} />
             </div>
           </div>
         </section>
+
         {/* Section: Performers */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <DashboardCard title="Top 10 Performers" className="md:col-span-12 bg-white/90 rounded-2xl shadow-lg border border-blue-100 p-6" content={(() => (
-            <div className="w-full">
-              <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-4">
-                <div className="flex flex-col flex-1 min-w-[120px]">
-                  <label className="text-xs text-slate-500 font-semibold mb-1">Select Batch</label>
-                  <select className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-200" value={batchOptions[0]} onChange={() => {}}>
-                    {batchOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
-                </div>
-                <div className="flex flex-col flex-1 min-w-[120px]">
-                  <label className="text-xs text-slate-500 font-semibold mb-1">Select Class</label>
-                  <select className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-200" value={"All"} onChange={() => {}}>
-                    <option value="All">All</option>
-                    {classOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
-                </div>
-                {/* Subject Filter (only for weekly/cumulative) */}
-                {subjectOptions.length > 0 && (
+          <DashboardCard
+            title="Top 10 Performers"
+            className="md:col-span-12 bg-white/90 rounded-2xl shadow-lg border border-blue-100 p-6"
+            content={(() => (
+              <div className="w-full">
+                <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-4">
                   <div className="flex flex-col flex-1 min-w-[120px]">
-                    <label className="text-xs text-slate-500 font-semibold mb-1">Select Subject</label>
-                    <select
-                      className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-200"
-                      value={filter.subject || subjectOptions[0]}
-                      onChange={e => {/* update filter context here */}}
-                    >
-                      {subjectOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    <label className="text-xs text-slate-500 font-semibold mb-1">Select Batch</label>
+                    <select className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-200" value={batchOptions[0]} onChange={() => { }}>
+                      {batchOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </div>
-                )}
-              </div>
-              <div className="overflow-x-auto rounded-xl border border-blue-50 bg-white/80">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="text-center border-b border-blue-100 bg-blue-50/40">
-                      <th className="py-2 text-blue-500 font-semibold">Rank</th>
-                      <th className="py-2 text-blue-500 font-semibold">Name</th>
-                      <th className="py-2 text-blue-500 font-semibold">Class</th>
-                      <th className="py-2 text-blue-500 font-semibold">Overall Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dashboardData.top10Performers.map((s, i) => (
-                      <tr key={i} className="border-b border-blue-50 hover:bg-blue-100/30 transition-all duration-200 text-center">
-                        <td className="py-2 text-blue-900 font-semibold">{i + 1}</td>
-                        <td className="py-2 text-blue-900">{s.name}</td>
-                        <td className="py-2 text-blue-900">{s.class}</td>
-                        <td className="py-2 font-medium text-blue-700">{s.score}</td>
+                  <div className="flex flex-col flex-1 min-w-[120px]">
+                    <label className="text-xs text-slate-500 font-semibold mb-1">Select Class</label>
+                    <select className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-200" value={"All"} onChange={() => { }}>
+                      <option value="All">All</option>
+                      {classOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+                  {subjectOptions.length > 0 && (
+                    <div className="flex flex-col flex-1 min-w-[120px]">
+                      <label className="text-xs text-slate-500 font-semibold mb-1">Select Subject</label>
+                      <select
+                        className="px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-blue-200"
+                        value={filter.subject || subjectOptions[0]}
+                        onChange={e => { }}
+                      >
+                        {subjectOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                <div className="overflow-x-auto rounded-xl border border-blue-50 bg-white/80">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-center border-b border-blue-100 bg-blue-50/40">
+                        <th className="py-2 text-blue-500 font-semibold">Rank</th>
+                        <th className="py-2 text-blue-500 font-semibold">Name</th>
+                        <th className="py-2 text-blue-500 font-semibold">Class</th>
+                        <th className="py-2 text-blue-500 font-semibold">Overall Score</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {dashboardData.top10Performers.map((s, i) => (
+                        <tr key={i} className="border-b border-blue-50 hover:bg-blue-100/30 transition-all duration-200 text-center">
+                          <td className="py-2 text-blue-900 font-semibold">{i + 1}</td>
+                          <td className="py-2 text-blue-900">{s.name}</td>
+                          <td className="py-2 text-blue-900">{s.class}</td>
+                          <td className="py-2 font-medium text-blue-700">{s.score}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          ))()} />
+            ))()}
+          />
         </div>
       </main>
     </div>

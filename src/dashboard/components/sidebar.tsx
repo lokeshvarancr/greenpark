@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { Home, ListChecks, BarChart3 } from "lucide-react";
-import Logo from "../assets/Logo_Inzighted.svg";
+import Logo from "../../assets/Logo_Inzighted.svg";
 
 const menu = [
 	{ label: "Dashboard", icon: <Home className="w-5 h-5" />, href: "/" },

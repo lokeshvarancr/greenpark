@@ -1,177 +1,122 @@
 import React from "react";
+import { RadialBarChart, RadialBar, ResponsiveContainer } from "recharts";
+import { motion } from "framer-motion";
 
 interface AverageTotalScoreGaugeProps {
   avgScore: number;
   maxMarks: number;
+  className?: string;
 }
 
-const AverageTotalScoreGauge: React.FC<AverageTotalScoreGaugeProps> = ({ 
-  avgScore, 
-  maxMarks 
+const AverageTotalScoreGauge: React.FC<AverageTotalScoreGaugeProps> = ({
+  avgScore,
+  maxMarks,
+  className = "",
 }) => {
-  // Handle edge cases for maxMarks
-  const safeMaxMarks = maxMarks > 0 ? maxMarks : 1;
-  const clampedAvgScore = Math.min(Math.max(avgScore, 0), safeMaxMarks);
+  // Validate and sanitize inputs
+  const safeMaxMarks = Math.max(Number(maxMarks), 1);
+  const clampedAvgScore = Math.min(Math.max(Number(avgScore), 0), safeMaxMarks);
   const percentage = clampedAvgScore / safeMaxMarks;
 
-  // Dimensions and positions
-  const radius = 80;
-  const strokeWidth = 22;
-  const cx = 100;
-  const cy = 100;
-  
-  // Calculate needle position
-  const needleAngle = Math.PI * (1 - percentage);
-  const needleX = cx + radius * Math.cos(needleAngle);
-  const needleY = cy - radius * Math.sin(needleAngle);
-
-  // Color logic
-  const getSegmentColor = (percent: number) => {
-    if (percent > 0.8) return "#4CAF50";
-    if (percent > 0.6) return "#26A69A";
-    if (percent > 0.4) return "#2196F3";
-    if (percent > 0.2) return "#FFB300";
-    return "#E53935";
-  };
-  const gaugeColor = getSegmentColor(percentage);
-
-  // Generate colored arc
-  let coloredArc = null;
-  if (percentage > 0) {
-    const largeArcFlag = percentage > 0.5 ? 1 : 0;
-    const sweepFlag = 1; // Always clockwise
-    
-    // Special case for 100%
-    if (percentage >= 1) {
-      coloredArc = (
-        <path
-          d={`M${cx - radius},${cy} A${radius},${radius} 0 1,1 ${cx + radius},${cy}`}
-          fill="none"
-          stroke={gaugeColor}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-      );
-    } else {
-      coloredArc = (
-        <path
-          d={`M${cx - radius},${cy} A${radius},${radius} 0 ${largeArcFlag},${sweepFlag} ${needleX},${needleY}`}
-          fill="none"
-          stroke={gaugeColor}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-      );
+  // Prepare data for the radial chart
+  const chartData = [
+    {
+      name: "Max",
+      value: 100,
+      fill: "#f3f4f6" // light gray background
+    },
+    {
+      name: "Score",
+      value: percentage * 100,
+      fill: getGradientColor(percentage)
     }
+  ];
+
+  // Color gradient for the gauge
+  function getGradientColor(pct: number): string {
+    if (pct >= 0.8) return "#10B981"; // green
+    if (pct >= 0.6) return "#06B6D4"; // cyan
+    if (pct >= 0.4) return "#3B82F6"; // blue
+    if (pct >= 0.2) return "#F59E0B"; // amber
+    return "#EF4444"; // red
   }
 
-  // Generate labels
-  const generateLabels = () => {
-    const positions = [
-      { value: 0, pos: 0 },
-      { value: 0.2, pos: 0.2 },
-      { value: 0.6, pos: 0.6 },
-      { value: 0.8, pos: 0.8 },
-      { value: 1, pos: 1 }
-    ];
-
-    return positions.map((item) => {
-      const angle = Math.PI * (1 - item.pos);
-      const labelRadius = radius + strokeWidth / 2 + 10;
-      const labelX = cx + labelRadius * Math.cos(angle);
-      const labelY = cy - labelRadius * Math.sin(angle);
-      const labelValue = Math.round(safeMaxMarks * item.value);
-
-      return (
-        <text
-          key={`label-${item.value}`}
-          x={labelX}
-          y={labelY}
-          fontSize="13"
-          fontWeight="500"
-          fill="#555"
-          textAnchor="middle"
-          alignmentBaseline="middle"
-        >
-          {labelValue}
-        </text>
-      );
-    });
+  // Performance rating text
+  const getRatingText = (pct: number) => {
+    if (pct >= 0.8) return "Excellent";
+    if (pct >= 0.6) return "Good";
+    if (pct >= 0.4) return "Average";
+    if (pct >= 0.2) return "Needs Improvement";
+    return "Poor";
   };
 
   return (
-    <div 
-      className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center"
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className={`rounded-xl p-6 shadow-sm flex flex-col items-center w-full ${className}`}
       role="figure"
-      aria-label={`Average total score: ${clampedAvgScore} out of ${safeMaxMarks}`}
+      aria-label={`Average score: ${clampedAvgScore} out of ${safeMaxMarks}`}
     >
-      <span className="text-2xl font-semibold text-blue-900 mb-3 tracking-wide">
+      <h3 className="text-lg font-semibold text-gray-800 mb-6">
         Average Total Score
-      </span>
-      
-      <div className="w-full max-w-[280px] mx-auto">
-        <svg 
-          viewBox="0 0 200 110" 
-          width="100%" 
-          height="195"
-          aria-hidden="true"
-        >
-          {/* Base arc */}
-          <path
-            d={`M${cx - radius},${cy} A${radius},${radius} 0 0,1 ${cx + radius},${cy}`}
-            fill="none"
-            stroke="#e5e7eb"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-          />
-          
-          {/* Colored progress arc */}
-          {coloredArc}
-          
-          {/* Needle indicator */}
-          <g>
-            <line
-              x1={cx}
-              y1={cy}
-              x2={needleX}
-              y2={needleY}
-              stroke="#333"
-              strokeWidth="4"
-              strokeLinecap="round"
+      </h3>
+
+      <div className="relative w-full h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadialBarChart
+            innerRadius="70%"
+            outerRadius="100%"
+            barSize={14}
+            data={chartData}
+            startAngle={180}
+            endAngle={0}
+          >
+            <RadialBar
+              background
+              dataKey="value"
+              cornerRadius={7}
+              animationDuration={1500}
             />
-            <circle cx={cx} cy={cy} r="5" fill="#333" />
-          </g>
-          
-          {/* Labels */}
-          {generateLabels()}
-          
-          {/* Score display */}
-          <text
-            x={cx}
-            y={cy - 30}
-            fontSize="34"
-            fontWeight="bold"
-            fill="#1a1a1a"
-            textAnchor="middle"
+          </RadialBarChart>
+        </ResponsiveContainer>
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <motion.div
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-center"
           >
-            {Math.round(clampedAvgScore)}
-          </text>
-          <text
-            x={cx}
-            y={cy - 5}
-            fontSize="16"
-            fill="#6b7280"
-            textAnchor="middle"
-          >
-            / {safeMaxMarks}
-          </text>
-        </svg>
+            <div className="text-3xl font-bold text-gray-900">
+              {clampedAvgScore.toFixed(1)}
+            </div>
+            <div className="text-sm text-gray-500 mt-1">
+              out of {safeMaxMarks}
+            </div>
+            <div
+              className="text-sm font-semibold mt-2"
+              style={{ color: getGradientColor(percentage) }}
+            >
+              {Math.round(percentage * 100)}% • {getRatingText(percentage)}
+            </div>
+          </motion.div>
+        </div>
       </div>
-      
-      <span className="text-sm text-gray-500 mt-4 font-medium">
-        Performance Gauge
-      </span>
-    </div>
+
+      <div className="mt-6 w-full">
+        <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${percentage * 100}%` }}
+            transition={{ duration: 1, delay: 0.2 }}
+            className="h-full rounded-full"
+            style={{ backgroundColor: getGradientColor(percentage) }}
+          />
+        </div>
+      </div>
+    </motion.div>
   );
 };
 

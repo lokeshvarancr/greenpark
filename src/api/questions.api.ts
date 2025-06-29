@@ -12,7 +12,7 @@
 import type { QuestionsData } from "../types/questions";
 
 // For Vite/ESM compatibility, use a static import for JSON
-import questionsDataJson from "../data/questions-data.json";
+import questionsDataJson from "../dashboard/data/questions-data.json";
 
 export async function getQuestionsData(
   filters: any // TODO: define a type for filters as per frontend spec

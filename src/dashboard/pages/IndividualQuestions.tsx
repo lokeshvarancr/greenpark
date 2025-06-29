@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Eye, Download, FileText } from "lucide-react";
-import { getQuestionsData } from "./api/questions.api";
-import type { QuestionsData, Question, QuestionFilterRequest } from "./types/questions";
-import QuestionViewModal from "./components/QuestionViewModal";
+import { getQuestionsData } from "../../api/questions.api";
+import type { QuestionsData, Question, QuestionFilterRequest } from "../../types/questions";
+import QuestionViewModal from "../../components/QuestionViewModal";
 import FileSaver from "file-saver";
-import IQFilterBar from "./components/IQFilterBar";
-import SectionsModal from "./components/SectionsModal";
-import AccuracyBadge from "./components/AccuracyBadge";
-import Tooltip from "./components/ui/Tooltip";
-import InsightSummaryCards from "./components/InsightSummaryCards";
+import IQFilterBar from "../../components/IQFilterBar";
+import SectionsModal from "../../components/SectionsModal";
+import AccuracyBadge from "../../components/AccuracyBadge";
+import Tooltip from "../../components/ui/Tooltip";
+import InsightSummaryCards from "../../components/InsightSummaryCards";
 
 const SECTION_OPTIONS = [
   ...Array.from({ length: 10 }, (_, i) => `11${String.fromCharCode(65 + i)}`),
@@ -153,7 +153,7 @@ const IndividualQuestions: React.FC = () => {
 
   return (
     <div className="min-h-0 flex flex-col bg-gray-50">
-      <div className="w-full max-w-7xl mx-auto px-2 md:px-6 flex flex-col gap-4">
+      <div className="w-full mx-auto px-2 md:px-6 flex flex-col gap-4">
         {/* Top Bar Filters */}
         <div className="sticky top-0 z-30 bg-white shadow flex flex-wrap items-center justify-between gap-4 px-4 py-3 rounded-b-xl border-b min-w-0">
           <IQFilterBar

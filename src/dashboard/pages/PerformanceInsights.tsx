@@ -148,11 +148,6 @@ const PerformanceInsights: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 md:px-12 py-10 flex flex-col gap-8">
-      {/* PAGE HEADER */}
-      <div className="mb-2">
-        <h1 className="text-3xl font-bold text-gray-800 mb-1">Performance Insights</h1>
-        <p className="text-gray-500 text-lg">Track average scores and student-level performance across tests.</p>
-      </div>
 
       {/* FILTER PANEL (TOP BAR) */}
       <div className="bg-white shadow rounded-2xl p-4 md:p-6 flex gap-4 md:gap-6 items-center overflow-x-auto scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-blue-50">

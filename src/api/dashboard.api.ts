@@ -6,7 +6,7 @@
 import type { DashboardFilter, DashboardData } from "../types/dashboard";
 
 // For Vite/ESM compatibility, use a static import for JSON
-import dashboardDataJson from "../data/dashboardData.json";
+import dashboardDataJson from "../dashboard/data/dashboardData.json";
 
 export async function getDashboardData(
   filters: DashboardFilter

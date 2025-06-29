@@ -1,5 +1,5 @@
 import React from "react";
-import type { Question } from "../../../IndividualQuestions";
+import type { Question } from "../../../dashboard/pages/IndividualQuestions";
 
 interface AnalyticsTableProps {
   questions: Question[];
