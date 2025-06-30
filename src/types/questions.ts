@@ -68,8 +68,7 @@ export type {
   OptionAttempts,
   ModalData,
   Question,
-  QuestionsData,
-  QuestionsRequest
+  QuestionsData
 };
 
 

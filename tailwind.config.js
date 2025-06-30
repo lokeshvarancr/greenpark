@@ -26,10 +26,7 @@ module.exports = {
     },
     // Extend: Add new theme values or override existing ones
     extend: {
-      // Colors: Define your custom color palette
       colors: {
-        // Shadcn UI uses CSS variables for theming.
-        // These map to your `globals.css` (or `index.css`) variables.
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

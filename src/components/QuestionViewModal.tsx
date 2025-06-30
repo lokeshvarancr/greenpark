@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import type { Question } from "../types/questions";
@@ -13,7 +13,6 @@ interface QuestionViewModalProps {
 const QuestionViewModal: React.FC<QuestionViewModalProps> = ({ open, onClose, question, modalClassName }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Always call hooks in the same order, regardless of props
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && open) onClose();
@@ -36,18 +35,17 @@ const QuestionViewModal: React.FC<QuestionViewModalProps> = ({ open, onClose, qu
     return null;
   }
 
-  // Use modal data from API
   const modal = question.modal;
   const optionCounts = modal.optionAttempts;
-  const correctOpt = Object.keys(optionCounts).reduce((a, b) => optionCounts[a] > optionCounts[b] ? a : b);
+  const correctOpt = (Object.keys(optionCounts) as (keyof typeof optionCounts)[]).reduce((a, b) => optionCounts[a] > optionCounts[b] ? a : b);
   const incorrectCounts = { ...optionCounts };
   delete incorrectCounts[correctOpt];
-  const mostCommonIncorrect = Object.keys(incorrectCounts).reduce((a, b) => incorrectCounts[a] > incorrectCounts[b] ? a : b);
+  const mostCommonIncorrect = (Object.keys(incorrectCounts) as (keyof typeof incorrectCounts)[]).reduce((a, b) => incorrectCounts[a] > incorrectCounts[b] ? a : b);
   const correctCount = optionCounts[correctOpt];
   const totalAttempts = modal.totalAttempts;
   const correctPct = Math.round((correctCount / totalAttempts) * 100);
   const incorrectPct = 100 - correctPct;
-  const chartData = Object.keys(optionCounts).map(opt => ({
+  const chartData = (Object.keys(optionCounts) as (keyof typeof optionCounts)[]).map(opt => ({
     option: opt,
     count: optionCounts[opt],
     isCorrect: opt === correctOpt,
@@ -66,8 +64,8 @@ const QuestionViewModal: React.FC<QuestionViewModalProps> = ({ open, onClose, qu
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b bg-white/80 sticky top-0 z-10">
           <div className="flex flex-col gap-1">
-            <span className="font-bold text-3xl text-gray-900 leading-tight">Q{question.number}</span>
-            <span className="text-lg text-gray-700 font-medium max-w-2xl truncate">{modal.questionText}</span>
+            <span className="font-bold text-3xl text-gray-900 leading-tight">Q{(question as any).number}</span>
+            {/* Removed question text for a cleaner look */}
             <div className="flex gap-6 mt-2 text-base text-gray-600">
               <span><span className="font-semibold">Subject:</span> {question.subject}</span>
               <span><span className="font-semibold">Total Attempts:</span> {modal.totalAttempts}</span>

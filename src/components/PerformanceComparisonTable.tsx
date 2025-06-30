@@ -10,6 +10,7 @@ interface SubjectData {
 interface RowData {
   sno: number;
   class: string;
+  section?: string;
   name: string;
   physics: SubjectData;
   chemistry: SubjectData;
@@ -71,7 +72,7 @@ const PerformanceComparisonTable: React.FC<PerformanceComparisonTableProps> = ({
         {data.map(row => (
           <tr key={row.sno} className="hover:bg-blue-50 transition-all duration-300">
             <td className="border px-1 py-1 text-center rounded-l-lg whitespace-nowrap">{row.sno}</td>
-            <td className="border px-1 py-1 text-center whitespace-nowrap">{row.class}</td>
+            <td className="border px-1 py-1 text-center whitespace-nowrap">{row.section || row.class}</td>
             <td className="border px-1 py-1 whitespace-nowrap">{row.name}</td>
             {/* Physics */}
             <td className="border px-1 py-1 text-center whitespace-nowrap">{row.physics.mark1}</td>

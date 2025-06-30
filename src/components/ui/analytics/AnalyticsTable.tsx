@@ -1,5 +1,5 @@
 import React from "react";
-import type { Question } from "../../../dashboard/pages/IndividualQuestions";
+import type { Question } from "@/types/questions";
 
 interface AnalyticsTableProps {
   questions: Question[];
@@ -21,7 +21,7 @@ const AnalyticsTable: React.FC<AnalyticsTableProps> = ({
     <table className="min-w-full text-sm">
       <thead>
         <tr className="bg-gray-100">
-          <th className="p-2 cursor-pointer" onClick={() => { setSortKey("number"); setSortDir(sortDir === "asc" ? "desc" : "asc"); }}>Q#</th>
+          <th className="p-2 cursor-pointer" onClick={() => { setSortKey("questionId"); setSortDir(sortDir === "asc" ? "desc" : "asc"); }}>Q#</th>
           <th className="p-2 cursor-pointer" onClick={() => { setSortKey("attempts"); setSortDir(sortDir === "asc" ? "desc" : "asc"); }}>Attempted</th>
           <th className="p-2">Correct</th>
           <th className="p-2">Incorrect</th>
@@ -30,8 +30,8 @@ const AnalyticsTable: React.FC<AnalyticsTableProps> = ({
       </thead>
       <tbody>
         {questions.map(q => (
-          <tr key={q.number} className={`transition-colors ${getAccuracyColor(q.accuracy)}`}>
-            <td className="p-2 font-semibold">{q.number}</td>
+          <tr key={q.questionId} className={`transition-colors ${getAccuracyColor(q.accuracy)}`}>
+            <td className="p-2 font-semibold">{q.questionId}</td>
             <td className="p-2">{q.attempts}</td>
             <td className="p-2 relative group">
               {q.correct}

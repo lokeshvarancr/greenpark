@@ -5,7 +5,7 @@ import {
   SECTION_OPTIONS,
   MONTHS,
   getWeeksInMonth,
-  excelData
+  getPerformanceTableData
 } from "@/DummyData/PerformanceTabData";
 import PerformanceComparisonTable from "@/components/PerformanceComparisonTable";
 import PerformanceSummaryCards from "@/components/PerformanceSummaryCards";
@@ -32,6 +32,14 @@ const Performancetab: React.FC = () => {
 
   // Controlled interactivity: Only update on Compare
   const [comparisonData, setComparisonData] = useState<any[]>([]);
+  const [tableData, setTableData] = useState<any[]>(getPerformanceTableData(testType));
+
+  // Update table data when testType changes
+  React.useEffect(() => {
+    setTableData(getPerformanceTableData(testType));
+    setShowComparison(false);
+  }, [testType]);
+
   const handleCompare = () => {
     setCompareError("");
     // Validate
@@ -50,18 +58,22 @@ const Performancetab: React.FC = () => {
       setShowComparison(false);
       return;
     }
-    // Simulate data fetch and filter
     setShowComparison(true);
-    setComparisonData(excelData.filter(row => selectedSections.includes(row.class)));
+    setComparisonData(tableData.filter(row => selectedSections.includes(row.section)));
   };
+
+  // Dynamic serial number for filtered table
+  const filteredData = showComparison ? comparisonData : [];
+  const reIndexedData = filteredData.map((row, idx) => ({ ...row, sno: idx + 1 }));
 
   // Subject summary counts after comparison
   const getSubjectSummary = () => {
-    const summary = ["physics", "chemistry", "botany", "zoology"].map(subject => {
+    return ["physics", "chemistry", "botany", "zoology"].map(subject => {
       let improved = 0, declined = 0, same = 0;
-      for (const row of comparisonData) {
+      for (const row of reIndexedData) {
         const t1 = row[subject].mark1;
         const t2 = row[subject].mark2;
+        if (t1 === "" || t2 === "") continue;
         if (t2 > t1) improved++;
         else if (t2 < t1) declined++;
         else same++;
@@ -73,7 +85,6 @@ const Performancetab: React.FC = () => {
         same
       };
     });
-    return summary;
   };
 
   const subjectSummary = getSubjectSummary();
@@ -82,29 +93,29 @@ const Performancetab: React.FC = () => {
   const getRankBarChartData = () => {
     if (selectedSubject === "Overall") {
       // Average rank for each test across all subjects
-      let t1Sum = 0, t2Sum = 0, count = 0;
+      let rankSum = 0, count = 0;
       for (const row of comparisonData) {
         ["physics", "chemistry", "botany", "zoology"].forEach(sub => {
-          t1Sum += row[sub].rank1;
-          t2Sum += row[sub].rank2;
-          count++;
+          if (typeof row[sub].rank === "number") {
+            rankSum += row[sub].rank;
+            count++;
+          }
         });
       }
       return [
-        { name: "Test 1", rank: count ? Math.round(t1Sum / count) : 0 },
-        { name: "Test 2", rank: count ? Math.round(t2Sum / count) : 0 },
+        { name: "Rank", rank: count ? Math.round(rankSum / count) : 0 },
       ];
     } else {
       const key = selectedSubject.toLowerCase();
-      let t1Sum = 0, t2Sum = 0, count = 0;
+      let rankSum = 0, count = 0;
       for (const row of comparisonData) {
-        t1Sum += row[key].rank1;
-        t2Sum += row[key].rank2;
-        count++;
+        if (typeof row[key].rank === "number") {
+          rankSum += row[key].rank;
+          count++;
+        }
       }
       return [
-        { name: "Test 1", rank: count ? Math.round(t1Sum / count) : 0 },
-        { name: "Test 2", rank: count ? Math.round(t2Sum / count) : 0 },
+        { name: "Rank", rank: count ? Math.round(rankSum / count) : 0 },
       ];
     }
   };
@@ -113,11 +124,12 @@ const Performancetab: React.FC = () => {
   const getGroupedBarChartData = () => {
     return ["physics", "chemistry", "botany", "zoology"].map(sub => {
       let improved = 0, declined = 0, same = 0;
-      for (const row of comparisonData) {
-        const r1 = row[sub].rank1;
-        const r2 = row[sub].rank2;
-        if (r2 < r1) improved++;
-        else if (r2 > r1) declined++;
+      for (const row of reIndexedData) {
+        const t1 = row[sub].mark1;
+        const t2 = row[sub].mark2;
+        if (t1 === "" || t2 === "") continue;
+        if (t2 > t1) improved++;
+        else if (t2 < t1) declined++;
         else same++;
       }
       return {
@@ -128,6 +140,32 @@ const Performancetab: React.FC = () => {
       };
     });
   };
+
+  // Section dropdown logic: only 5 checkboxes, always at least one selected
+  const handleSectionChange = (section: string) => {
+    if (section === "Select All") {
+      setSelectedSections(selectedSections.length === SECTION_OPTIONS.length ? [] : [...SECTION_OPTIONS]);
+    } else {
+      let updated = selectedSections.includes(section)
+        ? selectedSections.filter(s => s !== section)
+        : [...selectedSections, section];
+      if (updated.length === 0) updated = [...SECTION_OPTIONS];
+      setSelectedSections(updated);
+    }
+  };
+
+  // Section dropdown: close on outside click
+  React.useEffect(() => {
+    if (!sectionDropdownOpen) return;
+    function handleClick(e: MouseEvent) {
+      const dropdown = document.getElementById("section-dropdown");
+      if (dropdown && !dropdown.contains(e.target as Node)) {
+        setSectionDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [sectionDropdownOpen]);
 
   return (
     <div className="min-h-0 flex flex-col bg-gray-50">
@@ -276,7 +314,7 @@ const Performancetab: React.FC = () => {
           )}
         </div>
         {/* Section Dropdown (multi-select) - always shown */}
-        <div className="relative min-w-[220px]">
+        <div className="relative min-w-[220px]" id="section-dropdown">
           <label className="block text-xs font-semibold mb-1 text-gray-600">Section</label>
           <button
             type="button"
@@ -291,7 +329,7 @@ const Performancetab: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={selectedSections.length === SECTION_OPTIONS.length}
-                  onChange={() => setSelectedSections(selectedSections.length === SECTION_OPTIONS.length ? [] : [...SECTION_OPTIONS])}
+                  onChange={() => handleSectionChange("Select All")}
                   className="accent-blue-600 w-4 h-4 rounded"
                   id="select-all-sections"
                 />
@@ -303,7 +341,7 @@ const Performancetab: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={selectedSections.includes(section)}
-                      onChange={() => setSelectedSections(prev => prev.includes(section) ? prev.filter(s => s !== section) : [...prev, section])}
+                      onChange={() => handleSectionChange(section)}
                       className="accent-blue-600 w-4 h-4 rounded"
                     />
                     <span className="text-sm font-medium">{section}</span>
@@ -338,12 +376,12 @@ const Performancetab: React.FC = () => {
             {/* --- Summary Cards and Charts --- */}
             <PerformanceSummaryCards
               summary={subjectSummary}
-              rankBarChartData={getRankBarChartData()}
               groupedBarChartData={getGroupedBarChartData()}
+              rankBarChartData={getRankBarChartData()}
             />
             {/* --- Table --- */}
             <div className="max-w-[80rem] mx-auto px-2 mt-6">
-              <PerformanceComparisonTable data={comparisonData} />
+              <PerformanceComparisonTable data={reIndexedData} />
             </div>
           </>
         ) : (

@@ -12,31 +12,59 @@ export const sections = [
 ];
 export const studentCounts = [5, 10, 30, 50];
 
-export type TestType = "Weekly" | "Cumulative" | "Grant Test";
+export type TestType = "Weekly" | "Cumulative" | "Grand Test";
 
-export const testTypeOptions: TestType[] = ["Weekly", "Cumulative", "Grant Test"];
+export const testTypeOptions: TestType[] = ["Weekly", "Cumulative", "Grand Test"];
 export const testTypeToLabel: Record<TestType, string> = {
   Weekly: "Week Test",
   Cumulative: "Cumulative Test",
-  "Grant Test": "Grant Test"
+  "Grand Test": "Grand Test"
 };
 export const testTypeToTests: Record<TestType, string[]> = {
   Weekly: ["Week 1 Test", "Week 2 Test", "Week 3 Test"],
   Cumulative: ["Cumulative Test 1", "Cumulative Test 2", "Cumulative Test 3"],
-  "Grant Test": ["Grant Test 1", "Grant Test 2", "Grant Test 3"]
+  "Grand Test": ["Grand Test 1", "Grand Test 2", "Grand Test 3"]
 };
 
-// Sample data for top/bottom performers (100 for demo)
-export const allStudents = Array.from({ length: 100 }, (_, i) => {
-  const testType: TestType = testTypeOptions[i % testTypeOptions.length];
-  return {
-    name: `Student ${i + 1}`,
-    section: sections[i % sections.length],
-    campus: campuses[i % campuses.length],
-    month: months[i % months.length],
-    week: weeks[i % weeks.length],
-    testType,
-    test: testTypeToTests[testType][i % 3],
-    percent: 98 - i * 0.7 + (i % 5) * 2 // just for demo
-  };
-});
+// Sample data for top/bottom performers (covering all filter combinations)
+const SUBJECTS = ["Physics", "Chemistry", "Botany", "Zoology"];
+export const allStudents = [] as Array<{
+  name: string;
+  section: string;
+  campus: string;
+  month: string;
+  week: string;
+  testType: TestType;
+  test: string;
+  percent: number;
+  subject: string;
+}>;
+let studentId = 1;
+const MAX_STUDENTS = 9999;
+outer: for (const month of months) {
+  for (const week of weeks) {
+    for (const campus of campuses) {
+      for (const section of sections) {
+        for (const testType of testTypeOptions) {
+          for (const test of testTypeToTests[testType]) {
+            for (const subject of SUBJECTS) {
+              if (studentId > MAX_STUDENTS) break outer;
+              allStudents.push({
+                name: `Student ${studentId.toString().padStart(4, "0")}`,
+                section,
+                campus,
+                month,
+                week,
+                testType,
+                test,
+                percent: Math.max(40, Math.min(100, 60 + Math.floor(Math.random() * 40))),
+                subject
+              });
+              studentId++;
+            }
+          }
+        }
+      }
+    }
+  }
+}

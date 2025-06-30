@@ -14,10 +14,10 @@ const menu = [
 ];
 
 const PROFILE = {
-	name: "Aaru Mugam",
+	name: "Greenpark",
 	role: "Admin",
-	email: "aarumugamit@greenpark.com",
-	phone: "+91 98765 43210",
+	email: "admin@greenpark.com",
+	phone: "+91 9988776655",
 	school: "Greenpark International School",
 	avatar: "https://randomuser.me/api/portraits/men/32.jpg",
 };
