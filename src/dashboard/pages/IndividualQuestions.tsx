@@ -3,147 +3,40 @@ import { Eye } from "lucide-react";
 import type { QuestionFilterRequest } from "../../types/questions";
 import IQFilterBar from "../../components/IQFilterBar";
 import InsightSummaryCards from "../../components/InsightSummaryCards";
+import DataTable from "../components/tables/DataTable";
 import QuestionViewModal from "../../components/QuestionViewModal";
+import type { TableRow } from "@/DummyData/TableRow";
+import {
+  MONTHS as monthOptions,
+  BATCHES as batchOptions,
+  CUMULATIVE_PAIRS as subjectPairOptions,
+} from "@/DummyData/IndividualQuestionsData";
+import { generateQuestionTableRows } from "@/DummyData/IndividualQuestionsData";
 
-const monthOptions = Array.from({ length: 12 }, (_, i) => {
-  const date = new Date(2025, 5 + i, 1);
-  return { label: date.toLocaleString("default", { month: "long", year: "numeric" }), value: `${date.getFullYear()}-${date.getMonth() + 1}` };
-});
+const grandTestOptions = [
+  { label: "Grand Test 1", value: "GT1" },
+  { label: "Grand Test 2", value: "GT2" },
+];
+
+// Convert batchOptions and subjectPairOptions to correct format for filter bar
+const batchOptionsObj = batchOptions.map(b => ({ label: b, value: b }));
+const subjectPairOptionsObj = subjectPairOptions.map(p => ({ label: p, value: p.replace(/\s+/g, '').toLowerCase() }));
 const subjectOptions = [
   { label: "Physics", value: "physics" },
   { label: "Chemistry", value: "chemistry" },
   { label: "Botany", value: "botany" },
   { label: "Zoology", value: "zoology" },
 ];
-const subjectPairOptions = [
-  { label: "Physics+Botany", value: "physics+botany" },
-  { label: "Chemistry+Zoology", value: "chemistry+zoology" },
-];
-const grandTestOptions = [
-  { label: "Grand Test 1", value: "GT1" },
-  { label: "Grand Test 2", value: "GT2" },
-];
-const batchOptions = [
-  { label: "Batch A", value: "A" },
-  { label: "Batch B", value: "B" },
-];
+
+// SECTION_OPTIONS for section selection
+const SECTION_OPTIONS = ["Select All", "11A", "11B", "12A", "12B"];
 
 // --- Section/Student logic ---
-const SECTION_OPTIONS = ["11A", "11B", "11C", "11D"];
-
-function getTotalStudentCount(sections: string[]) {
-  if (!sections || sections.length === 0 || sections.includes("Select All")) return 200;
-  return sections.length * 50;
-}
+// All logic moved to DummyData/IndividualQuestionsData.ts
 
 // --- Question count logic ---
-function getQuestionRowsByTestType(testType: string, subject: string, subjectPair?: string) {
-  if (testType === "Weekly") {
-    const counts: Record<string, number> = { Physics: 30, Chemistry: 45, Botany: 60, Zoology: 60 };
-    return Array.from({ length: counts[subject] || 0 }, (_, i) => ({
-      subject,
-      questionNumber: i + 1,
-    }));
-  }
-  if (testType === "Cumulative") {
-    if (subjectPair === "Physics+Botany") {
-      return [
-        ...Array.from({ length: 50 }, (_, i) => ({ subject: "Physics", questionNumber: i + 1 })),
-        ...Array.from({ length: 50 }, (_, i) => ({ subject: "Botany", questionNumber: 50 + i + 1 })),
-      ];
-    } else {
-      return [
-        ...Array.from({ length: 50 }, (_, i) => ({ subject: "Chemistry", questionNumber: i + 1 })),
-        ...Array.from({ length: 50 }, (_, i) => ({ subject: "Zoology", questionNumber: 50 + i + 1 })),
-      ];
-    }
-  }
-  if (testType === "Grand Test") {
-    let rows: { subject: string; questionNumber: number }[] = [];
-    let n = 1;
-    for (const subject of ["Physics", "Chemistry", "Botany", "Zoology"]) {
-      for (let i = 0; i < 45; i++) {
-        rows.push({ subject, questionNumber: n++ });
-      }
-    }
-    return rows;
-  }
-  return [];
-}
 
 // --- Table row generator ---
-function randInt(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-function weightedView(tries: number) {
-  if (tries > 0.9) return randInt(4, 5);
-  if (tries > 0.7) return randInt(2, 5);
-  if (tries > 0.5) return randInt(1, 4);
-  return randInt(0, 2);
-}
-function generateModalData(row: any): import("../../types/questions").ModalData {
-  // Generate plausible modal data for demo (all fields required by QuestionViewModal)
-  const totalAttempts = row.attempts;
-  const correct = row.correct;
-  const incorrect = row.incorrect;
-  const optionAttempts = {
-    A: Math.floor(correct * 0.7 + incorrect * 0.2),
-    B: Math.floor(correct * 0.1 + incorrect * 0.3),
-    C: Math.floor(correct * 0.1 + incorrect * 0.3),
-    D: Math.max(0, totalAttempts - (Math.floor(correct * 0.7 + incorrect * 0.2) + Math.floor(correct * 0.1 + incorrect * 0.3) + Math.floor(correct * 0.1 + incorrect * 0.3)))
-  };
-  return {
-    questionText: `Sample question text for Q${row.questionNumber}`,
-    subject: row.subject,
-    totalAttempts,
-    optionAttempts,
-    correctPercentage: totalAttempts ? Number(((correct / totalAttempts) * 100).toFixed(2)) : 0,
-    incorrectPercentage: totalAttempts ? Number(((incorrect / totalAttempts) * 100).toFixed(2)) : 0,
-    mostCommonIncorrectPercentage: 0, // Not used in modal UI
-    optionDistribution: optionAttempts
-  };
-}
-function generateQuestionTableRows({
-  testType,
-  subject,
-  section,
-  subjectPair,
-}: {
-  testType: string;
-  subject: string;
-  section: string[];
-  subjectPair?: string;
-}): any[] {
-  const rows = getQuestionRowsByTestType(testType, subject, subjectPair);
-  const totalCount = getTotalStudentCount(section);
-  return rows.map((row, i) => {
-    const attempts = randInt(Math.floor(totalCount * 0.6), totalCount);
-    const correct = randInt(0, attempts);
-    const incorrect = attempts - correct;
-    const accuracy = attempts === 0 ? 0 : Number(((correct / attempts) * 100).toFixed(2));
-    const triesRatio = attempts / (totalCount || 1);
-    const view = weightedView(triesRatio);
-    return {
-      id: i + 1,
-      number: i + 1,
-      subject: row.subject,
-      totalCount,
-      attempts,
-      correct,
-      incorrect,
-      accuracy,
-      view,
-      viewable: true,
-      modal: generateModalData({
-        questionNumber: i + 1,
-        subject: row.subject,
-        attempts,
-        correct,
-        incorrect
-      })
-    };
-  });
-}
 
 // --- Summary card metrics generator ---
 function getSummaryMetrics(tableRows: ReturnType<typeof generateQuestionTableRows>) {
@@ -199,9 +92,9 @@ const IndividualQuestions: React.FC = () => {
     month: monthOptions[0].value,
     section: "Select All",
     subject: "physics",
-    subjectPair: subjectPairOptions[0].value as "physics+botany" | "chemistry+zoology" | undefined,
+    subjectPair: subjectPairOptionsObj[0].value as "physics+botany" | "chemistry+zoology" | undefined,
   });
-  const [viewModalRow, setViewModalRow] = useState(null);
+  const [viewModalRow, setViewModalRow] = useState<TableRow | null>(null);
   const [selectedSections, setSelectedSections] = useState<string[]>([...SECTION_OPTIONS]);
 
   // Dynamic table data
@@ -210,8 +103,14 @@ const IndividualQuestions: React.FC = () => {
     subject: filter.subject ? filter.subject.charAt(0).toUpperCase() + filter.subject.slice(1) : "Physics",
     section: selectedSections,
     subjectPair: filter.subjectPair,
-  });
+  }).map((row, idx) => ({ ...row, totalCount: selectedSections.length ? selectedSections.length * 50 : 200, number: row.number ?? idx + 1 }));
   const metrics = getSummaryMetrics(tableRows);
+
+  // Convert metrics.accuracyDistribution to expected object shape for InsightSummaryCards
+  const accuracyBands = metrics.accuracyDistribution.reduce((acc, cur) => {
+    acc[cur.band as "High" | "Medium" | "Low"] = cur.count;
+    return acc;
+  }, { High: 0, Medium: 0, Low: 0 });
 
   // Filter change handlers
   const handleTestType = (v: string) => {
@@ -222,7 +121,7 @@ const IndividualQuestions: React.FC = () => {
       if (testType === "weekly") {
         newFilter = { testType, month: monthOptions[0].value, section: SECTION_OPTIONS[0] };
       } else if (testType === "cumulative") {
-        newFilter = { testType, month: monthOptions[0].value, batch: batchOptions[0].value, subjectPair: subjectPairOptions[0].value as "physics+botany" | "chemistry+zoology", section: SECTION_OPTIONS[0] };
+        newFilter = { testType, month: monthOptions[0].value, batch: batchOptionsObj[0].value, subjectPair: subjectPairOptionsObj[0].value as "physics+botany" | "chemistry+zoology", section: SECTION_OPTIONS[0] };
       } else if (testType === "grandtest") {
         newFilter = { testType, month: monthOptions[0].value, grandTestName: grandTestOptions[0].value, section: SECTION_OPTIONS[0] };
       }
@@ -239,8 +138,8 @@ const IndividualQuestions: React.FC = () => {
   const handleGrandTestName = (v: string) => setFilter(f => ({ ...f, grandTestName: v }));
 
   return (
-    <div className="min-h-0 flex flex-col bg-gray-50">
-      <div className="w-full mx-auto px-2 md:px-6 flex flex-col gap-4">
+    <div className="min-h-0 flex flex-col mt-12">
+      <div className="w-full max-w-7xl mx-auto px-2 md:px-6 flex flex-col gap-4">
         {/* Top Bar Filters */}
         <IQFilterBar
           testType={filter.testType === "weekly" ? "Weekly" : filter.testType === "cumulative" ? "Cumulative" : "Grand Test"}
@@ -252,13 +151,13 @@ const IndividualQuestions: React.FC = () => {
           weekOptions={filter.testType === "weekly" ? getWeeksForMonth(filter.month) : undefined}
           batch={filter.batch}
           setBatch={filter.testType === "cumulative" ? handleBatch : undefined}
-          batchOptions={filter.testType === "cumulative" ? batchOptions : undefined}
+          batchOptions={filter.testType === "cumulative" ? batchOptionsObj : undefined}
           subject={filter.subject}
           setSubject={filter.testType === "weekly" ? handleSubject : undefined}
           subjectOptions={filter.testType === "weekly" ? subjectOptions : undefined}
           subjectPair={filter.subjectPair}
           setSubjectPair={filter.testType === "cumulative" ? handleSubjectPair : undefined}
-          subjectPairOptions={filter.testType === "cumulative" ? subjectPairOptions : undefined}
+          subjectPairOptions={filter.testType === "cumulative" ? subjectPairOptionsObj : undefined}
           grandTestName={filter.grandTestName}
           setGrandTestName={filter.testType === "grandtest" ? handleGrandTestName : undefined}
           grandTestOptions={filter.testType === "grandtest" ? grandTestOptions : undefined}
@@ -268,55 +167,40 @@ const IndividualQuestions: React.FC = () => {
         />
         {/* Insight Summary Cards Row */}
         <div className="w-full">
-          <InsightSummaryCards metrics={metrics} />
+          <InsightSummaryCards {...metrics} accuracyDistribution={accuracyBands} />
         </div>
         {/* Per-Question Analysis Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 flex-1 flex flex-col min-w-0 w-full max-w-7xl mx-auto mt-2">
-          <div className="w-full flex-1 flex flex-col">
-            <div className="flex-1" style={{ maxHeight: 'unset' }}>
-              <div className="relative w-full overflow-y-auto" style={{ maxHeight: '70vh' }}>
-                <table className="w-full text-sm border-separate border-spacing-0">
-                  <thead className="sticky top-0 z-20 bg-gradient-to-b from-gray-100 to-gray-50 shadow-sm">
-                    <tr>
-                      <th className="py-3 px-3 text-left font-semibold text-gray-700">Q#</th>
-                      <th className="py-3 px-3 text-left font-semibold text-gray-700">Subject</th>
-                      <th className="py-3 px-3 text-right font-semibold text-gray-700">Total Count</th>
-                      <th className="py-3 px-3 text-right font-semibold text-gray-700">Attempts</th>
-                      <th className="py-3 px-3 text-right font-semibold text-gray-700">Correct</th>
-                      <th className="py-3 px-3 text-right font-semibold text-gray-700">Incorrect</th>
-                      <th className="py-3 px-3 text-right font-semibold text-gray-700">Accuracy</th>
-                      <th className="py-3 px-3 text-center font-semibold text-gray-700">View</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tableRows.map((q, idx) => (
-                      <tr
-                        key={q.id}
-                        className={`transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 border-b border-gray-100`}
-                      >
-                        <td className="py-3 px-3">{q.number}</td>
-                        <td className="py-3 px-3">{q.subject}</td>
-                        <td className="py-3 px-3 text-right">{q.totalCount}</td>
-                        <td className="py-3 px-3 text-right">{q.attempts}</td>
-                        <td className="py-3 px-3 text-right">{q.correct}</td>
-                        <td className="py-3 px-3 text-right">{q.incorrect}</td>
-                        <td className="py-3 px-3 text-right">{q.accuracy}%</td>
-                        <td className="py-3 px-3 text-center">
-                          <button
-                            className="inline-flex items-center justify-center rounded-full p-1 hover:bg-blue-100 transition"
-                            title="View details"
-                            onClick={() => setViewModalRow(q)}
-                          >
-                            <Eye className="w-5 h-5 text-blue-600 hover:scale-110 transition-transform" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+        <div className="w-full">
+          <DataTable
+            rows={tableRows}
+            columns={[
+              { field: 'number', label: 'Q#', align: 'center' },
+              { field: 'subject', label: 'Subject', align: 'center' },
+              { field: 'totalCount', label: 'Total Count', align: 'center' },
+              { field: 'attempts', label: 'Attempts', align: 'center' },
+              { field: 'correct', label: 'Correct', align: 'center' },
+              { field: 'incorrect', label: 'Incorrect', align: 'center' },
+              { field: 'accuracy', label: 'Accuracy', align: 'center' },
+              { field: 'view', label: 'View', align: 'center' },
+            ]}
+            renderCell={(row, col) => {
+              if (col.field === 'view') {
+                return (
+                  <button
+                    className="inline-flex items-center justify-center rounded-full p-1 hover:bg-blue-100 transition"
+                    title="View details"
+                    onClick={() => setViewModalRow(row)}
+                  >
+                    <Eye className="w-5 h-5 text-blue-600 hover:scale-110 transition-transform" />
+                  </button>
+                );
+              }
+              if (col.field === 'accuracy' && typeof row.accuracy === 'number') {
+                return row.accuracy + '%';
+              }
+              return row[col.field] ?? '';
+            }}
+          />
         </div>
         <QuestionViewModal
           open={!!viewModalRow}

@@ -96,11 +96,28 @@ module.exports = {
       // Spacing (optional, if you want to add more granular spacing than default)
       // E.g., `spacing: { '13': '3.25rem' }`
       // Fonts (optional, if you want to configure specific font families)
-      // E.g., `fontFamily: { sans: ['Inter', 'sans-serif'] }`
+      fontFamily: {
+        sans: ['Tenorite', 'sans-serif'],
+      },
     },
   },
   // 4. Plugins: Add Tailwind CSS plugins
   plugins: [
     require("tailwindcss-animate"), // Used by Shadcn UI for animations
+    require("daisyui"), // Added DaisyUI for dropdown and UI components
   ],
+  daisyui: {
+    themes: [
+      {
+        mytheme: {
+          primary: "#1a1a1a",
+          secondary: "#003cff",
+          accent: "#00B0F0",
+          neutral: "#190d25",
+          "base-100": "#ffffff",
+        },
+      },
+    ],
+    defaultTheme: "mytheme",
+  },
 };

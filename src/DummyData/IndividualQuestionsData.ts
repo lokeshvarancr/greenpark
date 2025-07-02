@@ -109,3 +109,82 @@ export const QUESTIONS = Array.from({ length: 180 }, (_, i) => {
 		test: getRandom(TEST_TYPES),
 	};
 });
+
+export function getTotalStudentCount(sections: string[]) {
+  if (!sections || sections.length === 0 || sections.includes("Select All")) return 200;
+  return sections.length * 50;
+}
+
+export function getQuestionRowsByTestType(testType: string, subject: string, subjectPair?: string) {
+  if (testType === "Weekly") {
+    const counts: Record<string, number> = { Physics: 30, Chemistry: 45, Botany: 60, Zoology: 60 };
+    return Array.from({ length: counts[subject] || 0 }, (_, i) => ({
+      subject,
+      questionNumber: i + 1,
+    }));
+  }
+  if (testType === "Cumulative") {
+    if (subjectPair === "Physics+Botany") {
+      return [
+        ...Array.from({ length: 50 }, (_, i) => ({ subject: "Physics", questionNumber: i + 1 })),
+        ...Array.from({ length: 50 }, (_, i) => ({ subject: "Botany", questionNumber: 50 + i + 1 })),
+      ];
+    } else {
+      return [
+        ...Array.from({ length: 50 }, (_, i) => ({ subject: "Chemistry", questionNumber: i + 1 })),
+        ...Array.from({ length: 50 }, (_, i) => ({ subject: "Zoology", questionNumber: 50 + i + 1 })),
+      ];
+    }
+  }
+  if (testType === "Grand Test") {
+    let rows: { subject: string; questionNumber: number }[] = [];
+    let n = 1;
+    for (const subject of ["Physics", "Chemistry", "Botany", "Zoology"]) {
+      for (let i = 0; i < 45; i++) {
+        rows.push({ subject, questionNumber: n++ });
+      }
+    }
+    return rows;
+  }
+  return [];
+}
+
+export function randInt(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+export function weightedView(tries: number) {
+  if (tries > 0.9) return randInt(4, 5);
+  if (tries > 0.7) return randInt(2, 5);
+  if (tries > 0.5) return randInt(1, 4);
+  return randInt(0, 2);
+}
+export function generateQuestionTableRows({
+  testType,
+  subject,
+  section,
+  subjectPair,
+}: {
+  testType: string;
+  subject: string;
+  section: string[];
+  subjectPair?: string;
+}): any[] {
+  const rows = getQuestionRowsByTestType(testType, subject, subjectPair);
+  const totalCount = getTotalStudentCount(section);
+  return rows.map((row) => {
+    const attempts = randInt(Math.floor(totalCount * 0.6), totalCount);
+    const correct = randInt(0, attempts);
+    const incorrect = attempts - correct;
+    const accuracy = attempts === 0 ? 0 : Number(((correct / attempts) * 100).toFixed(2));
+    const triesRatio = attempts / (totalCount || 1);
+    const view = weightedView(triesRatio);
+    return {
+      ...row,
+      attempts,
+      correct,
+      incorrect,
+      accuracy,
+      view,
+    };
+  });
+}

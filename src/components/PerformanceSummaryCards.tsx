@@ -1,15 +1,3 @@
-import React from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
-
 interface SubjectSummary {
   subject: string;
   improved: number;
@@ -19,12 +7,6 @@ interface SubjectSummary {
 
 interface PerformanceSummaryCardsProps {
   summary: SubjectSummary[];
-  groupedBarChartData: {
-    subject: string;
-    Improved: number;
-    Declined: number;
-    NoChange: number;
-  }[];
   rankBarChartData: any[]; // Add the correct type if known
 }
 
@@ -42,39 +24,69 @@ const cardGradients: Record<string, string> = {
   Zoology: "from-yellow-400 to-yellow-600",
 };
 
-const GroupedBarChart = ({
-  data,
-}: {
-  data: {
-    subject: string;
-    Improved: number;
-    Declined: number;
-    NoChange: number;
-  }[];
-}) => (
-  <div className="w-full h-[360px]">
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart
-        data={data}
-        margin={{ top: 20, right: 30, left: 0, bottom: 30 }}
-        barCategoryGap={20}
-      >
-        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="subject" tick={{ fontSize: 12 }} />
-        <YAxis tick={{ fontSize: 12 }} />
-        <Tooltip />
-        <Legend verticalAlign="top" height={36} />
-        <Bar dataKey="Improved" fill="#22c55e" radius={[6, 6, 0, 0]} />
-        <Bar dataKey="Declined" fill="#ef4444" radius={[6, 6, 0, 0]} />
-        <Bar dataKey="NoChange" fill="#facc15" radius={[6, 6, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
+// --- Card Design & Layout from InsightSummaryCards ---
+const CARD_ICON_MAPPING: Record<string, React.ReactNode> = {
+  Physics: "🧲",
+  Chemistry: "⚗️",
+  Botany: "🌱",
+  Zoology: "🦋",
+};
+
+const PerformanceTabCards = ({ summary }: { summary: SubjectSummary[] }) => (
+  <div className="w-full flex flex-col shadow-lg rounded-2xl overflow-hidden mt-4">
+    <div className="flex flex-row w-full">
+      {summary.slice(0, 2).map((s, idx) => (
+        <div
+          key={s.subject}
+          className={`flex flex-1 items-center py-6 px-8 min-w-0 bg-white ${
+            idx === 0 ? "rounded-l-2xl" : "border-l border-[#E9E9E9]"
+          } ${idx === 1 ? "rounded-r-none" : ""}`}
+        >
+          <div className="flex flex-col min-w-0">
+            <span className="text-base font-semibold text-gray-900 truncate">
+              {s.subject}
+            </span>
+            <span className="text-lg font-extrabold text-gray-900 mt-1 truncate">
+              Improved: {s.improved}, Declined: {s.declined}, No Change: {s.same}
+            </span>
+          </div>
+          <div className="flex items-center justify-center ml-auto">
+            <span className="inline-flex items-center justify-center rounded-full border border-blue-400 bg-white w-16 h-16 text-3xl">
+              {CARD_ICON_MAPPING[s.subject] || "📊"}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+    <div className="flex flex-row w-full border-t border-[#E9E9E9]">
+      {summary.slice(2, 4).map((s, idx) => (
+        <div
+          key={s.subject}
+          className={`flex flex-1 items-center py-6 px-8 min-w-0 bg-white ${
+            idx === 0 ? "rounded-bl-2xl" : "border-l border-[#E9E9E9]"
+          } ${idx === 1 ? "rounded-br-2xl" : ""}`}
+        >
+          <div className="flex flex-col min-w-0">
+            <span className="text-base font-semibold text-gray-900 truncate">
+              {s.subject}
+            </span>
+            <span className="text-lg font-extrabold text-gray-900 mt-1 truncate">
+              Improved: {s.improved}, Declined: {s.declined}, No Change: {s.same}
+            </span>
+          </div>
+          <div className="flex items-center justify-center ml-auto">
+            <span className="inline-flex items-center justify-center rounded-full border border-blue-400 bg-white w-16 h-16 text-3xl">
+              {CARD_ICON_MAPPING[s.subject] || "📊"}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
   </div>
 );
 
 const PerformanceSummaryCards: React.FC<PerformanceSummaryCardsProps> = ({
   summary,
-  groupedBarChartData,
 }) => (
   <div className="flex flex-col lg:flex-row gap-6 mb-8">
     {/* Left: 2x2 Card Grid */}
@@ -109,16 +121,9 @@ const PerformanceSummaryCards: React.FC<PerformanceSummaryCardsProps> = ({
           <div className="w-16 h-1 rounded-full bg-white/30 mt-3 z-10"></div>
         </div>
       ))}
-    </div>
-
-    {/* Right: Stylish Vertical Chart */}
-    <div className="flex-grow bg-gradient-to-br from-white to-green-50 rounded-2xl shadow-xl p-6 flex flex-col items-center min-w-[350px]">
-      <div className="text-lg font-semibold text-green-700 mb-4 tracking-wide">
-        Subject-wise Change
-      </div>
-      <GroupedBarChart data={groupedBarChartData} />
-    </div>
+    </div>  
   </div>
 );
 
+export { PerformanceTabCards };
 export default PerformanceSummaryCards;

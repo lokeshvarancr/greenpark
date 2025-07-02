@@ -2,7 +2,7 @@
 export { default as Section1Dashboard } from './Section1Dashboard';
 export { default as IndividualQuestions } from './IndividualQuestions';
 export { default as Performancetab } from './Performancetab';
-export { default as ManagementDrilldownPage } from './ManagementDrillDown';
+export { default as Upload } from './upload/upload';
 export { default as PerformanceInsights } from './PerformanceInsights';
 
 // Layout component merged from layout.tsx

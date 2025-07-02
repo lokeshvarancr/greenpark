@@ -1,3 +1,13 @@
+/* Import Tenorite font for use in Tailwind (self-hosted) */
+@font-face {
+  font-family: 'Tenorite';
+  src: url('./dashboard/components/fonts/Tenorite-Regular.woff2') format('woff2'),
+       url('./dashboard/components/fonts/Tenorite-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --blue-50: 239 246 255;
   --blue-100: 219 234 254;

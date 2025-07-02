@@ -59,9 +59,6 @@ const AverageTotalScoreGauge: React.FC<AverageTotalScoreGaugeProps> = ({
       role="figure"
       aria-label={`Average score: ${clampedAvgScore} out of ${safeMaxMarks}`}
     >
-      <h3 className="text-lg font-semibold text-gray-800 mb-6">
-        Average Total Score
-      </h3>
 
       <div className="relative w-full h-64">
         <ResponsiveContainer width="100%" height="100%">
@@ -105,7 +102,7 @@ const AverageTotalScoreGauge: React.FC<AverageTotalScoreGaugeProps> = ({
         </div>
       </div>
 
-      <div className="mt-6 w-full">
+      {/* <div className="mt-6 w-full">
         <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
@@ -115,7 +112,7 @@ const AverageTotalScoreGauge: React.FC<AverageTotalScoreGaugeProps> = ({
             style={{ backgroundColor: getGradientColor(percentage) }}
           />
         </div>
-      </div>
+      </div> */}
     </motion.div>
   );
 };

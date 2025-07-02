@@ -8,131 +8,139 @@ import {
   ArrowDownCircle,
   Info,
 } from "lucide-react";
-import Tooltip from "@/components/ui/Tooltip";
-import type { Metrics } from "../types/questions";
 
-interface InsightMetric {
-  value: string;
-  label: string;
-  icon: React.ReactNode;
-  tooltip: string;
-  gradient: string;
-}
+// Use a single blue color for all icons
+const ICON_CLASS = "w-9 h-9 text-blue-600";
 
-const InsightCard: React.FC<InsightMetric> = ({
-  value,
-  label,
-  icon,
-  tooltip,
-  gradient,
-}) => {
-  const isDistribution = label === "Accuracy Distribution";
-  return (
-    <div
-      className={`relative flex flex-col justify-between items-center bg-gradient-to-br ${gradient} rounded-2xl shadow-md hover:shadow-lg transition-all p-6 min-h-[220px] group cursor-pointer hover:scale-[1.03] ${
-        isDistribution ? "ring-2 ring-purple-400/60" : ""
-      }`}
-      style={{ minWidth: 0, flex: 1, maxWidth: '100%', width: '100%' }}
-    >
-      {/* Tooltip icon at top right */}
-      <div className="absolute top-3 right-3 z-20">
-        <Tooltip content={tooltip}>
-          <Info className="w-4 h-4 text-gray-400 hover:text-purple-500 transition" />
-        </Tooltip>
-      </div>
-      <div className="mb-2">{icon}</div>
-
-      {isDistribution ? (
-        <div className="flex flex-col items-center w-full mt-2 mb-2">
-          <div className="flex gap-3 justify-center items-end mb-1">
-            <span className="flex flex-col items-center">
-              <span className="w-3 h-3 rounded-full bg-green-500 mb-1"></span>
-              <span className="text-xl font-bold text-green-700 leading-none">
-                {value.split("/")[0].replace(/[^0-9]/g, "")}
-              </span>
-              <span className="text-xs text-gray-600 font-medium">High</span>
-            </span>
-            <span className="flex flex-col items-center">
-              <span className="w-3 h-3 rounded-full bg-yellow-400 mb-1"></span>
-              <span className="text-xl font-bold text-yellow-700 leading-none">
-                {value.split("/")[1]?.replace(/[^0-9]/g, "")}
-              </span>
-              <span className="text-xs text-gray-600 font-medium">Medium</span>
-            </span>
-            <span className="flex flex-col items-center">
-              <span className="w-3 h-3 rounded-full bg-red-500 mb-1"></span>
-              <span className="text-xl font-bold text-red-700 leading-none">
-                {value.split("/")[2]?.replace(/[^0-9]/g, "")}
-              </span>
-              <span className="text-xs text-gray-600 font-medium">Low</span>
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="text-3xl font-extrabold text-gray-800 drop-shadow-sm mb-1">
-          {value}
-        </div>
-      )}
-
-      <div className="text-sm text-gray-800 text-center font-semibold mt-2 leading-snug">
-        {label}
-      </div>
-    </div>
-  );
+const ICON_MAPPING: Record<string, React.ReactNode> = {
+  PieChart: <PieChart className={ICON_CLASS} />,
+  BarChart2: <BarChart2 className={ICON_CLASS} />,
+  TrendingUp: <TrendingUp className={ICON_CLASS} />,
+  Users: <Users className={ICON_CLASS} />,
+  AlertTriangle: <AlertTriangle className={ICON_CLASS} />,
+  ArrowDownCircle: <ArrowDownCircle className={ICON_CLASS} />,
+  Default: <Info className={ICON_CLASS} />,
 };
 
-// Accepts metrics as prop for dynamic rendering
-interface InsightSummaryCardsProps {
-  metrics: Metrics;
+function formatStatValue(value: any) {
+  if (typeof value === "number") return value.toLocaleString();
+  if (typeof value === "string") return value;
+  return value ?? "-";
 }
 
-const InsightSummaryCards: React.FC<InsightSummaryCardsProps> = ({ metrics }) => {
-  const distribution = metrics.accuracyDistribution;
+/**
+ * SummaryCards Component
+ *
+ * Displays a collection of summary statistic cards. Each card shows an icon,
+ * a title, and a formatted value. The layout adapts to different screen sizes
+ * (vertical on small screens, horizontal on larger screens).
+ */
+const InsightSummaryCards = ({
+  fullAttemptCoverage = 92,
+  aggregateAccuracy = 78,
+  accuracyDistribution = { High: 12, Medium: 8, Low: 5 },
+  engagementConsistency = 3.2,
+  improvementOpportunities = 4,
+  avgIncorrectPerQuestion = 1.7,
+}) => {
+  // Cards config (static order, only value changes)
+  const cards = [
+    {
+      icon: "PieChart",
+      title: "Full Attempt Coverage",
+      value: `${fullAttemptCoverage}%`,
+    },
+    {
+      icon: "BarChart2",
+      title: "Aggregate Accuracy",
+      value: `${aggregateAccuracy}%`,
+    },
+    {
+      icon: "TrendingUp",
+      title: "Accuracy Distribution",
+      value: `${accuracyDistribution.High} High / ${accuracyDistribution.Medium} Medium / ${accuracyDistribution.Low} Low`,
+    },
+    {
+      icon: "Users",
+      title: "Engagement Consistency",
+      value: engagementConsistency,
+    },
+    {
+      icon: "AlertTriangle",
+      title: "Improvement Opportunity",
+      value: improvementOpportunities,
+    },
+    {
+      icon: "ArrowDownCircle",
+      title: "Avg. Incorrect per Question",
+      value: avgIncorrectPerQuestion,
+    },
+  ];
+
   return (
-    <div className="w-full px-2 md:px-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-        <InsightCard
-          value={`${metrics.fullAttemptCoverage}%`}
-          label="Full Attempt Coverage"
-          icon={<PieChart className="w-7 h-7 text-blue-500" />}
-          tooltip="% of questions attempted by all students"
-          gradient="from-blue-100 to-blue-300"
-        />
-        <InsightCard
-          value={`${metrics.aggregateAccuracy}%`}
-          label="Aggregate Accuracy"
-          icon={<BarChart2 className="w-7 h-7 text-green-500" />}
-          tooltip="Average accuracy across all questions"
-          gradient="from-green-100 to-green-300"
-        />
-        <InsightCard
-          value={`${distribution.find(b => b.band === 'High')?.count ?? 0} High / ${distribution.find(b => b.band === 'Medium')?.count ?? 0} Medium / ${distribution.find(b => b.band === 'Low')?.count ?? 0} Low`}
-          label="Accuracy Distribution"
-          icon={<TrendingUp className="w-7 h-7 text-purple-500" />}
-          tooltip="Number of questions in each accuracy band"
-          gradient="from-purple-100 to-purple-300"
-        />
-        <InsightCard
-          value={metrics.engagementConsistency.toString()}
-          label="Engagement Consistency"
-          icon={<Users className="w-7 h-7 text-yellow-500" />}
-          tooltip="Average attempts per question"
-          gradient="from-yellow-100 to-yellow-300"
-        />
-        <InsightCard
-          value={metrics.improvementOpportunities.toString()}
-          label="Improvement Opportunity"
-          icon={<AlertTriangle className="w-7 h-7 text-red-500" />}
-          tooltip="Questions below 50% accuracy"
-          gradient="from-red-100 to-red-300"
-        />
-        <InsightCard
-          value={metrics.avgIncorrectPerQuestion.toString()}
-          label="Avg. Incorrect per Question"
-          icon={<ArrowDownCircle className="w-7 h-7 text-pink-500" />}
-          tooltip="Average number of incorrect responses per question"
-          gradient="from-pink-100 to-pink-300"
-        />
+    <div
+      className="w-full flex flex-col shadow-lg rounded-2xl overflow-hidden"
+      style={{ marginTop: 16 }}
+    >
+      {/* First row */}
+      <div className="flex flex-row w-full">
+        {cards.slice(0, 3).map((card, idx) => (
+          <div
+            key={card.title}
+            className={`flex flex-1 items-center py-6 px-8 min-w-0 bg-white ${
+              idx === 0
+                ? "rounded-l-2xl"
+                : "border-l border-[#E9E9E9]"
+            } ${idx === 2 ? "rounded-r-none" : ""}`}
+          >
+            <div className="flex flex-col min-w-0">
+              <span className="text-base font-semibold text-gray-900 truncate">
+                {card.title}
+              </span>
+              {/* Reduce text size for Accuracy Distribution value */}
+              <span
+                className={`mt-1 truncate font-extrabold text-gray-900 ${card.title === "Accuracy Distribution" ? "text-lg" : "text-2xl"}`}
+              >
+                {formatStatValue(card.value)}
+              </span>
+            </div>
+            <div className="flex items-center justify-center ml-auto">
+              <span className="inline-flex items-center justify-center rounded-full border border-blue-400 bg-white w-16 h-16">
+                {ICON_MAPPING[card.icon]}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Second row */}
+      <div className="flex flex-row w-full border-t border-[#E9E9E9]">
+        {cards.slice(3, 6).map((card, idx) => (
+          <div
+            key={card.title}
+            className={`flex flex-1 items-center py-6 px-8 min-w-0 bg-white ${
+              idx === 0
+                ? "rounded-bl-2xl"
+                : "border-l border-[#E9E9E9]"
+            } ${idx === 2 ? "rounded-br-2xl" : ""}`}
+          >
+            <div className="flex flex-col min-w-0">
+              <span className="text-base font-semibold text-gray-900 truncate">
+                {card.title}
+              </span>
+              {/* Reduce text size for Accuracy Distribution value in second row if needed */}
+              <span
+                className={`mt-1 truncate font-extrabold text-gray-900 ${card.title === "Accuracy Distribution" ? "text-lg" : "text-2xl"}`}
+              >
+                {formatStatValue(card.value)}
+              </span>
+            </div>
+            <div className="flex items-center justify-center ml-auto">
+              <span className="inline-flex items-center justify-center rounded-full border border-blue-400 bg-white w-16 h-16">
+                {ICON_MAPPING[card.icon]}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

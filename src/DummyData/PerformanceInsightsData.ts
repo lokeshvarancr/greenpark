@@ -68,3 +68,25 @@ outer: for (const month of months) {
     }
   }
 }
+
+export function getWeeksInMonth(month: string): string[] {
+  const [monthName, yearStr] = month.split(" ");
+  const monthIndex = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ].indexOf(monthName);
+  const year = parseInt(yearStr, 10);
+  if (monthIndex === -1) return [];
+  const lastDay = new Date(year, monthIndex + 1, 0);
+  const weeks: string[] = [];
+  let week = 1;
+  let day = 1;
+  while (day <= lastDay.getDate()) {
+    weeks.push(`Week ${week} ${monthName}`);
+    const date = new Date(year, monthIndex, day);
+    const daysToNextMonday = (8 - date.getDay()) % 7 || 7;
+    day += daysToNextMonday;
+    week++;
+  }
+  return weeks;
+}
