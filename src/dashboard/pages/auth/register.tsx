@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -10,7 +9,7 @@ import bgImage from '../../../assets/images/bg_001.webp';
 import educatorSignupImg from '../../../assets/images/educatorlogin.svg';
 import { API_BASE_URL } from '../../utils/api';
 
-// Defining the state types
+// Defining the interface for the component's state
 interface FormData {
   fullName: string;
   dob: string;
@@ -18,8 +17,6 @@ interface FormData {
   educatorEmail: string;
   password: string;
   confirmPassword: string;
-  studentCSV: File | null;
-  isAuthorized: boolean;
   loading: boolean;
   errorMessage: string | null;
 }
@@ -27,6 +24,7 @@ interface FormData {
 const Signup: React.FC = () => {
   const navigate = useNavigate();
 
+  // Initialize state with the defined FormData interface
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     dob: '',
@@ -34,68 +32,48 @@ const Signup: React.FC = () => {
     educatorEmail: '',
     password: '',
     confirmPassword: '',
-    studentCSV: null,
-    isAuthorized: false,
     loading: false,
     errorMessage: null,
   });
 
+  // Handle changes for text input fields
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFormData(prev => ({ ...prev, studentCSV: e.target.files[0] }));
-    }
-  };
-
+  // useEffect hook for side effects like setting document title and handling initial redirects
   useEffect(() => {
-    document.title = "Signup | Learning Platform";
+    document.title = "Signup | Learning Platform"; // Set the document title
 
-    const token = localStorage.getItem('token');
-    const csvStatus = localStorage.getItem('csv_status');
-    const storedEmail = localStorage.getItem('educator_email');
+    const storedEmail = localStorage.getItem('educator_email'); // Get stored educator email
 
+    // If an email is found in local storage, pre-fill the email field
     if (storedEmail) {
       setFormData(prev => ({ ...prev, educatorEmail: storedEmail }));
     }
 
-    setFormData(prev => ({ ...prev, isAuthorized: csvStatus === 'pending' }));
+    // The previous logic for redirecting if a token exists has been removed as requested.
+    // This allows users to access the signup page even if they have an existing token.
+  }, [navigate]); // Dependency array includes navigate to ensure effect re-runs if navigate changes (though it's stable)
 
-    if (token) {
-      switch (csvStatus) {
-      case 'pending':
-        setFormData(prev => ({ ...prev, isAuthorized: true }));
-        break;
-      case 'started':
-        navigate('/wait');
-        break;
-      case 'completed':
-        navigate('/educator/dashboard');
-        break;
-      case 'failed':
-        navigate('/csverror');
-        break;
-      default:
-        navigate('/unauthorized');
-      }
-    } else {
-      navigate('/unauthorized');
-    }
-  }, [navigate]);
-
+  // Handle form submission
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevent default form submission behavior
 
+    // Check if passwords match
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      // In a real application, consider using a custom modal or toast notification instead of alert()
+      // as alert() can be intrusive and block UI.
+      console.error('Passwords do not match'); // Log error to console
+      setFormData(prev => ({ ...prev, errorMessage: 'Passwords do not match' }));
       return;
     }
 
+    // Set loading state to true and clear any previous error messages
     setFormData(prev => ({ ...prev, loading: true, errorMessage: null }));
 
+    // Create a new FormData object to send multipart/form-data
     const submitData = new FormData();
     submitData.append('name', formData.fullName);
     submitData.append('dob', formData.dob);
@@ -103,59 +81,61 @@ const Signup: React.FC = () => {
     submitData.append('email', formData.educatorEmail);
     submitData.append('password', formData.password);
 
-    if (formData.studentCSV) {
-      submitData.append('file', formData.studentCSV);
-    }
-
     try {
+      // Make a POST request to the educator registration API endpoint
       const response = await axios.post(`${API_BASE_URL}/educator/register/`, submitData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 'Content-Type': 'multipart/form-data' }, // Set content type for file uploads
       });
 
+      // Store the received token and set first_time_login status in local storage
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('first_time_login', 'false');
 
-      navigate('/wait');
-    } catch (error: any) {
+      // Navigate to the educator login page after successful registration as requested.
+      navigate('/auth/Educator/login');
+    } catch (error: unknown) { // Use 'unknown' for better type safety than 'any'
+      // Handle API errors
+      let errorMessage = 'Something went wrong. Please try again.';
+      if (axios.isAxiosError(error) && error.response?.data?.error) {
+        // If it's an Axios error and contains a specific error message from the backend
+        errorMessage = error.response.data.error;
+      }
       setFormData(prev => ({
         ...prev,
-        errorMessage: error.response?.data?.error || 'Something went wrong. Try again.',
+        errorMessage: errorMessage,
       }));
     } finally {
+      // Always set loading state back to false after the request completes (success or failure)
       setFormData(prev => ({ ...prev, loading: false }));
     }
   };
-
-  if (!formData.isAuthorized) {
-    return (
-      <div className="min-h-screen flex justify-center items-center">
-        <p className="text-red-500 text-xl">🚫 Unauthorized Access! Redirecting...</p>
-      </div>
-    );
-  }
 
   return (
     <div
       className="min-h-screen flex flex-col md:flex-row relative overflow-hidden bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url(${bgImage})`, backgroundSize: 'cover' }}
     >
+      {/* Overlay for better text readability */}
       <div className="absolute inset-0 bg-black bg-opacity-30 z-0"></div>
 
+      {/* Main content card */}
       <div className="flex flex-1 items-center justify-center relative z-10 py-12 px-4">
         <motion.div
           className="card relative bg-base-100 shadow-xl w-full max-w-md backdrop-blur-sm bg-opacity-95 p-8"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
+          initial={{ opacity: 0 }} // Initial animation state
+          animate={{ opacity: 1 }} // Animation target state
+          transition={{ duration: 0.6, ease: 'easeOut' }} // Animation duration and easing
         >
+          {/* Back button */}
           <motion.button
-            onClick={() => navigate('/auth/Educator/login')}
+            onClick={() => navigate('/auth/Educator/login')} // Navigate back to educator login
             className="absolute top-4 left-4 btn btn-sm btn-base-100 btn-circle text-white"
             aria-label="Go back"
           >
             <ArrowLeft size={18} weight="bold" />
           </motion.button>
 
+          {/* Card body content */}
           <div className="card-body pt-6">
             <div className="flex items-center justify-center mb-4">
               <ChalkboardTeacher weight="duotone" size={32} className="text-primary mr-2" />
@@ -166,6 +146,7 @@ const Signup: React.FC = () => {
               Join us, esteemed educator! Create your account and start inspiring minds.
             </p>
 
+            {/* Illustration */}
             <div className="w-4/5 mx-auto flex justify-center items-center p-4">
               <motion.img
                 src={educatorSignupImg}
@@ -174,10 +155,12 @@ const Signup: React.FC = () => {
               />
             </div>
 
+            {/* Display error message if any */}
             {formData.errorMessage && (
               <p className="text-red-500 text-sm text-center">{formData.errorMessage}</p>
             )}
 
+            {/* Signup form */}
             <form className="w-full flex flex-col space-y-4 mt-4" onSubmit={handleSubmit}>
               <input
                 type="text"
@@ -195,7 +178,7 @@ const Signup: React.FC = () => {
                 value={formData.educatorEmail}
                 onChange={handleChange}
                 className="input input-bordered w-full"
-                readOnly
+                readOnly // Email is pre-filled and should not be editable
               />
               <input
                 type="date"
@@ -233,25 +216,11 @@ const Signup: React.FC = () => {
                 className="input input-bordered w-full"
                 required
               />
-              <div className="flex flex-col">
-                <label className="mb-1 text-sm font-medium text-gray-700">
-                  Upload Student Details (CSV)
-                </label>
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleFileChange}
-                  className="file-input file-input-bordered w-full"
-                />
-                {formData.studentCSV && (
-                  <p className="mt-1 text-sm text-gray-600">📄 {formData.studentCSV.name}</p>
-                )}
-              </div>
               <motion.div>
                 <button
                   type="submit"
                   className="btn btn-outline btn-primary btn-wide w-full"
-                  disabled={formData.loading}
+                  disabled={formData.loading} // Disable button when loading
                 >
                   {formData.loading ? 'Signing Up...' : 'Sign Up'}
                 </button>
@@ -261,6 +230,7 @@ const Signup: React.FC = () => {
         </motion.div>
       </div>
 
+      {/* Footer */}
       <div className="absolute bottom-0 w-full p-2 text-center text-white bg-black bg-opacity-40 text-xs z-10">
         © 2025 Learning Platform. All rights reserved.
       </div>
@@ -269,4 +239,3 @@ const Signup: React.FC = () => {
 };
 
 export default Signup;
-

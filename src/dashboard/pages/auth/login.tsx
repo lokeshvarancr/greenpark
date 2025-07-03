@@ -1,6 +1,6 @@
-import React, { useState, useEffect, FormEvent } from 'react';
+import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { educatorLogin } from '../../../utils/api';
+import { Login as apiLogin } from '../../utils/api'; // Renamed to avoid conflict with component name
 
 import { motion } from 'framer-motion';
 import {
@@ -11,13 +11,13 @@ import {
 } from '@phosphor-icons/react';
 
 import bgImage from '../../../assets/images/bg_001.webp';
-import educatorLoginImg from '../../../assets/images/educatorlogin.svg';
+import LoginImg from '../../../assets/images/Login.svg';
 
-const EducatorLogin = () => {
+const Login: React.FC = () => {
   const navigate = useNavigate();
-  const [educatorId, setEducatorId] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [educatorId, setEducatorId] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,35 +26,61 @@ const EducatorLogin = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
+    setError(null); // Clear any previous errors
+
+    // Dummy login credentials for testing
+    if (educatorId === 'Lokesh' && password === 'Lokesh3105') {
+      localStorage.setItem('token', 'dummy_token_lokesh'); // Set a dummy token
+      localStorage.setItem('educator_email', 'Lokesh'); // Set dummy email
+
+      // Simulate first-time login logic for the dummy user
+      // For testing, you might want to manually clear 'first_time_login' from localStorage
+      // in your browser's developer tools to test the '/register' redirect.
+      const isFirstTimeLogin = localStorage.getItem('first_time_login') !== 'false';
+
+      if (isFirstTimeLogin) {
+        navigate('/register'); // Redirect to register page
+      } else {
+        navigate('/educator/dashboard'); // Redirect to dashboard
+      }
+      return; // Stop further execution for dummy login
+    }
+
     try {
-      const response = await educatorLogin(educatorId, password);
+      // Call the login API for actual credentials
+      const response = await apiLogin(educatorId, password);
+
+      // Handle API errors
       if (response.error) {
         setError(response.error);
         return;
       }
+
+      // Store token and educator email in local storage
       localStorage.setItem('token', response.token);
-      localStorage.setItem('csv_status', response.csv_status);
       localStorage.setItem('educator_email', educatorId);
 
-      switch (response.csv_status) {
-        case 'pending':
-          navigate('/register');
-          break;
-        case 'started':
-          navigate('/wait');
-          break;
-        case 'completed':
-          navigate('/educator/dashboard');
-          break;
-        case 'failed':
-          navigate('/csverror');
-          break;
-        default:
-          setError('Unexpected status received.');
+      // Determine redirection based on 'first_time_login' flag in local storage
+      // If 'first_time_login' is not explicitly 'false', it's considered a first-time login.
+      // The 'first_time_login' flag is expected to be set to 'false' by the signup page after successful registration.
+      const isFirstTimeLogin = localStorage.getItem('first_time_login') !== 'false';
+
+      if (isFirstTimeLogin) {
+        // Redirect to the registration page for first-time users
+        navigate('/register');
+      } else {
+        // Redirect to the educator dashboard for returning users
+        navigate('/educator/dashboard');
       }
-    } catch {
-      setError('Invalid credentials or network issue.');
+
+      // Note: The original logic using 'response.csv_status' for redirection (pending, started, failed)
+      // has been replaced by the 'first_time_login' flag as per your request for a simpler binary redirection.
+      // If a more granular onboarding flow (e.g., based on CSV upload status) is needed,
+      // the 'csv_status' from the API response should be re-incorporated into the redirection logic.
+
+    } catch (err) {
+      // Catch any network or unexpected errors
+      setError('Invalid credentials or network issue. Please try again.');
     }
   };
 
@@ -100,7 +126,7 @@ const EducatorLogin = () => {
 
             <div className="w-4/5 mx-auto flex justify-center items-center p-4">
               <motion.img
-                src={educatorLoginImg}
+                src={LoginImg}
                 alt="Educator Login"
                 className="w-full object-contain"
                 initial={{ x: -50, opacity: 0 }}
@@ -183,4 +209,4 @@ const EducatorLogin = () => {
   );
 };
 
-export default EducatorLogin;
+export default Login;
