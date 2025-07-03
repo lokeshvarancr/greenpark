@@ -8,7 +8,7 @@ import { ChalkboardTeacher, ArrowLeft } from '@phosphor-icons/react';
 
 import bgImage from '../../../assets/images/bg_001.webp';
 import educatorSignupImg from '../../../assets/images/educatorlogin.svg';
-import { API_BASE_URL } from '../../../utils/api';
+import { API_BASE_URL } from '../../utils/api';
 
 // Defining the state types
 interface FormData {
