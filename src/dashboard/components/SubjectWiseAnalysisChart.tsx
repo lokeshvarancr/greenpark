@@ -33,7 +33,7 @@ const SubjectWiseAnalysisChart = ({
           <SelectDropdown
             options={testList.map(test => ({ value: test, label: test }))}
             selectedValue={selectedTest}
-            onSelect={setSelectedTest}
+            onSelect={val => setSelectedTest && typeof val === "string" && setSelectedTest(val)}
             buttonClassName="btn btn-sm justify-between w-full sm:w-48 truncate"
           />
         </div>

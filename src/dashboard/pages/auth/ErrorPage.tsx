@@ -18,18 +18,17 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
 }) => {
   const [countdown, setCountdown] = useState<number>(10);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
-  const [isAutoRefreshing, setIsAutoRefreshing] = useState<boolean>(false);
 
   // Handle countdown for auto-refresh
   useEffect(() => {
     let timer: NodeJS.Timeout; // Explicitly type timer as NodeJS.Timeout
-    if (isAutoRefreshing && countdown > 0) {
+    if (countdown > 0) {
       timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    } else if (isAutoRefreshing && countdown === 0) {
+    } else if (countdown === 0) {
       window.location.reload();
     }
     return () => clearTimeout(timer);
-  }, [countdown, isAutoRefreshing]);
+  }, [countdown]);
 
   // Get error message based on common error codes
   const getErrorTitle = (): string => { // Explicitly type the return value as string
@@ -105,8 +104,8 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
               onClick={() => window.location.reload()}
               className="flex items-center justify-center px-5 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all text-sm font-medium border border-gray-200 gap-2"
             >
-              <ArrowClockwise size={18} weight="bold" className={isAutoRefreshing ? "animate-spin" : ""} />
-              {isAutoRefreshing ? `Refreshing in ${countdown}s` : "Refresh Page"}
+              <ArrowClockwise size={18} weight="bold" className={countdown === 0 ? "animate-spin" : ""} />
+              {countdown === 0 ? `Refreshing in ${countdown}s` : "Refresh Page"}
             </button>
 
           </div>

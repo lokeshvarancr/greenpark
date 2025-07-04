@@ -9,6 +9,7 @@ import DashboardCard from "@/components/ui/DashboardCard";
 import CountUp from "@/components/ui/CountUp";
 import DataTable, { type TableRow } from "../components/tables/DataTable";
 import { BarChart2, PercentCircle, Star, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import PageContainer from "@/components/layout/PageContainer";
 
 // --- MOCK DATA GENERATION ---
 // All mock data and generator functions have been moved to DummyData/Section1DashboardData.ts
@@ -143,8 +144,8 @@ export default function Section1Dashboard() {
   ];
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen">
-      <main className="px-6 md:px-12 py-10 space-y-12 mx-auto w-full">
+    <PageContainer>
+      <div className="space-y-12 w-full">
         {/* Section: Filters */}
         {/* <div className="bg-white/80 rounded-2xl shadow-lg border border-blue-100 px-6 py-5 mb-2"> */}
           <FilterBar institutions={institutionOptions} batches={batchOptions} classes={sectionOptions} />
@@ -326,31 +327,31 @@ export default function Section1Dashboard() {
             <span className="text-sm text-slate-600 font-medium mr-3">Most Dropped Subject</span>
             <span className="text-base font-bold text-slate-700">{dashboardData.mostDroppedSubject}</span>
           </div>
-        </div> * */}
+        </div> * />
 
         {/* KPI Row above the table */}
-<div className="w-full bg-white/90 border border-blue-100 rounded-2xl shadow-lg px-6 py-4 mb-6 flex flex-col gap-2">
-  <div className="flex flex-wrap md:flex-nowrap gap-4 w-full">
-    <div className="flex-1 min-w-[180px] flex items-center gap-3 px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50">
-      <span className="text-2xl font-extrabold text-emerald-600">
-        <CountUp end={dashboardData.improvingStudentsPercentage} decimals={1} suffix="%" />
-      </span>
-      <span className="text-sm text-slate-700 font-medium">of Students Improving</span>
-    </div>
-    <div className="flex-1 min-w-[180px] flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50">
-      <span className="text-sm text-slate-700 font-medium">Most Improved Subject</span>
-      <span className="ml-auto text-base font-bold text-amber-600">{dashboardData.mostImprovedSubject}</span>
-    </div>
-    <div className="flex-1 min-w-[180px] flex items-center gap-3 px-4 py-3 rounded-xl border border-blue-200 bg-blue-50">
-      <span className="text-sm text-slate-700 font-medium">Best Performing Section</span>
-      <span className="ml-auto text-base font-bold text-blue-700">{dashboardData.bestPerformingClass}</span>
-    </div>
-    <div className="flex-1 min-w-[180px] flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
-      <span className="text-sm text-slate-700 font-medium">Most Dropped Subject</span>
-      <span className="ml-auto text-base font-bold text-slate-700">{dashboardData.mostDroppedSubject}</span>
-    </div>
-  </div>
-</div>
+        <div className="w-full bg-white/90 border border-blue-100 rounded-2xl shadow-lg px-6 py-4 mb-6 flex flex-col gap-2">
+          <div className="flex flex-wrap md:flex-nowrap gap-4 w-full">
+            <div className="flex-1 min-w-[180px] flex items-center gap-3 px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50">
+              <span className="text-2xl font-extrabold text-emerald-600">
+                <CountUp end={dashboardData.improvingStudentsPercentage} decimals={1} suffix="%" />
+              </span>
+              <span className="text-sm text-slate-700 font-medium">of Students Improving</span>
+            </div>
+            <div className="flex-1 min-w-[180px] flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50">
+              <span className="text-sm text-slate-700 font-medium">Most Improved Subject</span>
+              <span className="ml-auto text-base font-bold text-amber-600">{dashboardData.mostImprovedSubject}</span>
+            </div>
+            <div className="flex-1 min-w-[180px] flex items-center gap-3 px-4 py-3 rounded-xl border border-blue-200 bg-blue-50">
+              <span className="text-sm text-slate-700 font-medium">Best Performing Section</span>
+              <span className="ml-auto text-base font-bold text-blue-700">{dashboardData.bestPerformingClass}</span>
+            </div>
+            <div className="flex-1 min-w-[180px] flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
+              <span className="text-sm text-slate-700 font-medium">Most Dropped Subject</span>
+              <span className="ml-auto text-base font-bold text-slate-700">{dashboardData.mostDroppedSubject}</span>
+            </div>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           <DashboardCard
@@ -382,7 +383,7 @@ export default function Section1Dashboard() {
             ))()}
           />
         </div>
-      </main>
-    </div>
+      </div>
+    </PageContainer>
   );
 }

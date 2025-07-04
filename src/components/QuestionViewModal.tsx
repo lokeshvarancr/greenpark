@@ -1,13 +1,58 @@
 import React, { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import type { Question } from "../types/questions";
+import type { Question, OptionAttempts } from "../types/questions";
+import type { TableRow } from "@/DummyData/TableRow";
 
 interface QuestionViewModalProps {
   open: boolean;
   onClose: () => void;
   question: Question | null;
   modalClassName?: string;
+}
+
+function toModalQuestion(row: TableRow | null): Question | null {
+  if (!row) return null;
+  const optionAttempts: OptionAttempts = {
+    A: 0,
+    B: 0,
+    C: 0,
+    D: 0,
+  };
+  if (Array.isArray(row.options)) {
+    row.options.forEach((opt: any, idx: number) => {
+      const key = String.fromCharCode(65 + idx) as keyof OptionAttempts;
+      if (key in optionAttempts) {
+        optionAttempts[key] = opt.count;
+      }
+    });
+  }
+  const totalAttempts = row.attempts ?? 0;
+  const correct = row.correct ?? 0;
+  const correctPct = totalAttempts ? Math.round((correct / totalAttempts) * 100) : 0;
+  const incorrectPct = 100 - correctPct;
+  // Compose modal
+  const modal = {
+    questionText: row.text ?? '',
+    subject: row.subject ?? '',
+    totalAttempts,
+    optionAttempts,
+    correctPercentage: correctPct,
+    incorrectPercentage: incorrectPct,
+    mostCommonIncorrectPercentage: 0, // Not available in TableRow
+    optionDistribution: optionAttempts,
+  };
+  return {
+    questionId: String(row.id ?? row.number ?? ''),
+    subject: row.subject ?? '',
+    totalCount: row.totalCount ?? 0,
+    attempts: totalAttempts,
+    correct: correct,
+    incorrect: row.incorrect ?? 0,
+    accuracy: row.accuracy ?? 0,
+    viewable: true,
+    modal,
+  };
 }
 
 const QuestionViewModal: React.FC<QuestionViewModalProps> = ({ open, onClose, question, modalClassName }) => {
@@ -31,11 +76,13 @@ const QuestionViewModal: React.FC<QuestionViewModalProps> = ({ open, onClose, qu
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open, onClose]);
 
-  if (!open || !question) {
+  // Use the mapping function to ensure modal is always present
+  const safeQuestion = toModalQuestion(question as TableRow | null);
+  if (!open || !safeQuestion || !safeQuestion.modal) {
     return null;
   }
-
-  const modal = question.modal;
+  // Use safeQuestion everywhere below
+  const modal = safeQuestion.modal;
   const optionCounts = modal.optionAttempts;
   const correctOpt = (Object.keys(optionCounts) as (keyof typeof optionCounts)[]).reduce((a, b) => optionCounts[a] > optionCounts[b] ? a : b);
   const incorrectCounts = { ...optionCounts };
@@ -64,10 +111,10 @@ const QuestionViewModal: React.FC<QuestionViewModalProps> = ({ open, onClose, qu
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b bg-white/80 sticky top-0 z-10">
           <div className="flex flex-col gap-1">
-            <span className="font-bold text-3xl text-gray-900 leading-tight">Q{(question as any).number}</span>
+            <span className="font-bold text-3xl text-gray-900 leading-tight">Q{(safeQuestion as any).number}</span>
             {/* Removed question text for a cleaner look */}
             <div className="flex gap-6 mt-2 text-base text-gray-600">
-              <span><span className="font-semibold">Subject:</span> {question.subject}</span>
+              <span><span className="font-semibold">Subject:</span> {safeQuestion.subject}</span>
               <span><span className="font-semibold">Total Attempts:</span> {modal.totalAttempts}</span>
             </div>
           </div>

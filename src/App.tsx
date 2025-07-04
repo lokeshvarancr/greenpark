@@ -7,14 +7,18 @@ import {
   IndividualQuestions,
   Performancetab,
   PerformanceInsights,
-  Upload
-} from './dashboard/pages';
+  Upload,
+  Login,
+  Register
+} from './dashboard/pages/index.tsx';
 
 function App() {
   return (
     <Router>
       <FilterProvider>
         <Routes>
+          <Route path="/auth" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/" element={<Layout />}>
             <Route index element={<Section1Dashboard />} />
             <Route path="individual-questions" element={<IndividualQuestions />} />

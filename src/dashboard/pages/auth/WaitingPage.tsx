@@ -106,7 +106,7 @@ const WaitingPage: React.FC = () => {
       </div>
 
       {/* Custom animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes ping-slow {
           0%, 100% {
             transform: scale(1);
@@ -137,7 +137,6 @@ const WaitingPage: React.FC = () => {
         .animate-scale-in {
           animation: scale-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
-
         @keyframes float {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-20px); }

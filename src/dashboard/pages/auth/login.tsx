@@ -1,6 +1,7 @@
-import React, { useState, useEffect, FormEvent, ChangeEvent } from 'react';
+import React, { useState, useEffect } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Login as apiLogin } from '../../utils/api'; // Renamed to avoid conflict with component name
+import { educatorLogin as apiLogin } from '../../utils/api'; // FIX: Use the correct educatorLogin API function
 
 import { motion } from 'framer-motion';
 import {
@@ -11,7 +12,7 @@ import {
 } from '@phosphor-icons/react';
 
 import bgImage from '../../../assets/images/bg_001.webp';
-import LoginImg from '../../../assets/images/Login.svg';
+import LoginImg from '../../../assets/images/educatorlogin.svg';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();

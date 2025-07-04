@@ -4,6 +4,8 @@ export { default as IndividualQuestions } from './IndividualQuestions';
 export { default as Performancetab } from './Performancetab';
 export { default as Upload } from './upload/upload';
 export { default as PerformanceInsights } from './PerformanceInsights';
+export { default as Login } from './auth/login';
+export { default as Register } from './auth/register';
 
 // Layout component merged from layout.tsx
 import type { ReactNode } from 'react';
@@ -23,4 +25,3 @@ export const Layout = ({ children }: LayoutProps) => (
         </div>
     </div>
 );
-    

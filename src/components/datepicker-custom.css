@@ -21,3 +21,27 @@
   background: #e0e7ff !important;
   color: #1e293b !important;
 }
+.inzight-dropdown-input {
+  background: #fff !important;
+  border: 1px solid #d1d5db !important; /* gray-300 */
+  border-radius: 0.5rem !important; /* rounded-lg */
+  color: #1e293b !important; /* text-slate-800 */
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  height: 2.25rem !important; /* h-9 */
+  min-height: 2.25rem !important;
+  padding: 0 0.75rem !important; /* px-3 */
+  box-shadow: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+  display: flex;
+  align-items: center;
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.inzight-dropdown-input:hover:not(:disabled) {
+  background: #f9fafb !important; /* hover:bg-gray-50 */
+}
+.inzight-dropdown-input:disabled {
+  background: #f3f4f6 !important; /* disabled:bg-gray-100 */
+  cursor: not-allowed;
+}

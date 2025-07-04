@@ -1,138 +1,135 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 
-// --- Interfaces for Type Safety ---
-
-/**
- * Defines the structure of an individual option object for the dropdown.
- */
+// --- TYPE DEFINITIONS ---
 export interface DropdownOption {
-  value: string; // The unique value associated with the option
-  label?: string; // Optional display label for the option. If not provided, value will be used.
+  value: string;
+  label: string; // Label is no longer optional for clarity
 }
 
-/**
- * Defines the props for the SelectDropdown component.
- */
 interface SelectDropdownProps {
-  options?: DropdownOption[]; // Array of option objects
-  selectedValue?: string | null; // The currently selected value, or null if none is selected (single select)
-  selectedValues?: string[]; // The currently selected values (multi-select)
-  onSelect: ((value: string) => void) | ((value: string, values: string[]) => void); // Accept both signatures
-  label?: string; // Default text to display when no option is selected
-  className?: string; // Additional classes for the main dropdown container
-  buttonClassName?: string; // Classes for the dropdown trigger button
-  dropdownClassName?: string; // Classes for the dropdown menu content container
-  itemClassName?: string; // Classes for each individual dropdown item (<li><a>)
-  disabled?: boolean; // Disable the dropdown if true
-  multiSelect?: boolean; // Enable multi-select mode
+  options: DropdownOption[];
+  onSelect: (selected: string | string[]) => void; // Unified onSelect handler
+  selectedValue?: string;    // For single-select
+  selectedValues?: string[]; // For multi-select
+  placeholder?: string;      // Text inside the button when nothing is selected
+  label?: string;            // Optional title label above the dropdown
+  className?: string;
+  buttonClassName?: string;
+  dropdownClassName?: string;
+  disabled?: boolean;
+  multiSelect?: boolean;
 }
 
-// --- SelectDropdown Component ---
 
-const commonButtonClasses =
-  'bg-[#ededed] border-none shadow-sm rounded-lg px-3 py-1 text-[#222] font-medium h-8 flex items-center justify-between w-full cursor-pointer transition-all duration-200 hover:bg-gray-100 text-sm appearance-none';
-const labelClasses =
-  'text-sm text-[#8b8b8b] font-medium whitespace-nowrap mb-1';
-
+// --- REFINED COMPONENT ---
 const SelectDropdown: React.FC<SelectDropdownProps> = ({
   options = [],
-  selectedValue = null,
-  selectedValues = [],
   onSelect,
-  label = '', // Default to empty string
+  selectedValue,
+  selectedValues = [],
+  placeholder = 'Select an option',
+  label,
   className = '',
   buttonClassName = '',
   dropdownClassName = '',
-  itemClassName = '',
   disabled = false,
   multiSelect = false,
 }) => {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Close dropdown on click outside
   useEffect(() => {
-    if (!open) return;
-    const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [open]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-  // Button label logic
-  let buttonLabel = label;
-  if (multiSelect) {
-    if (selectedValues.length === 0) buttonLabel = label;
-    else if (selectedValues.length === 1) buttonLabel = options.find(o => o.value === selectedValues[0])?.label || selectedValues[0];
-    else buttonLabel = `${selectedValues.length} selected`;
-  } else {
-    buttonLabel = options.find((o) => o.value === selectedValue)?.label || selectedValue || label;
-  }
-
-  // Multi-select change handler
-  const handleMultiSelect = (value: string) => {
-    let next: string[];
-    if (selectedValues.includes(value)) {
-      next = selectedValues.filter(v => v !== value);
+  // --- Unified Select Handler ---
+  const handleSelect = (optionValue: string) => {
+    if (multiSelect) {
+      const newValues = selectedValues.includes(optionValue)
+        ? selectedValues.filter((v) => v !== optionValue)
+        : [...selectedValues, optionValue];
+      onSelect(newValues);
     } else {
-      next = [...selectedValues, value];
+      onSelect(optionValue);
+      setIsOpen(false);
     }
-    // Always call with two arguments for multi-select
-    (onSelect as (value: string, values: string[]) => void)(value, next);
   };
 
-  // Single-select change handler
-  const handleSingleSelect = (value: string) => {
-    // Always call with one argument for single-select
-    (onSelect as (value: string) => void)(value);
-    setOpen(false);
+  // --- Determine Button Display Text ---
+  const getButtonLabel = () => {
+    if (multiSelect) {
+      if (selectedValues.length === 0) return placeholder;
+      if (selectedValues.length === 1) {
+        return options.find((o) => o.value === selectedValues[0])?.label || placeholder;
+      }
+      return `${selectedValues.length} items selected`;
+    }
+    const selectedOption = options.find((o) => o.value === selectedValue);
+    return selectedOption?.label || placeholder;
   };
 
   return (
-    <div className={`relative flex flex-col items-start gap-1 ${className}`} ref={ref}>
-      {/* Only render label if provided and not empty */}
-      {label && <label className={labelClasses}>{label}</label>}
+    <div className={`relative w-full ${className}`} ref={dropdownRef}>
+      {label && <label className="block text-sm font-medium text-gray-600 mb-1">{label}</label>}
+      
+      {/* --- Trigger Button --- */}
       <button
         type="button"
-        className={`${commonButtonClasses} ${buttonClassName}`}
         disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setIsOpen(!isOpen)}
+        className={`bg-white border border-gray-300 shadow-sm rounded-lg px-3 h-9 text-gray-800 font-medium flex items-center justify-between w-full cursor-pointer transition-colors duration-200 hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed ${buttonClassName}`}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
       >
-        <span className="truncate text-left flex-1">
-          {buttonLabel}
-        </span>
-        <ChevronDown className={`w-4 h-4 ml-2 text-[#8b8b8b] transition-transform ${open ? 'rotate-180' : ''}`} />
+        <span className="truncate text-sm">{getButtonLabel()}</span>
+        <ChevronDown className={`w-4 h-4 ml-2 text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
-      {open && (
-        <div className={`absolute left-0 mt-1 z-30 bg-white border rounded-lg shadow-lg w-full p-2 ${dropdownClassName}`} style={{ minWidth: 120 }}>
-          <ul className="menu">
-            {options.map((option) => (
-              <li key={option.value} className="w-full">
-                {multiSelect ? (
-                  <label className="flex items-center gap-2 px-2 py-1 rounded hover:bg-blue-50 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedValues.includes(option.value)}
-                      onChange={() => handleMultiSelect(option.value)}
-                      className="accent-blue-600 w-4 h-4 rounded"
-                      readOnly
-                    />
-                    <span className="text-sm font-medium">{option.label || option.value}</span>
-                  </label>
-                ) : (
-                  <a
-                    onClick={() => handleSingleSelect(option.value)}
-                    className={`hover:bg-primary/10 hover:text-primary transition-colors duration-200 rounded-md text-sm whitespace-nowrap px-2 py-1 ${itemClassName}`}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {option.label || option.value}
-                  </a>
-                )}
-              </li>
-            ))}
+
+      {/* --- Dropdown Menu --- */}
+      {isOpen && (
+        <div
+          className={`absolute top-full mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-xl z-30 p-1 ${dropdownClassName}`}
+          role="listbox"
+          aria-activedescendant={multiSelect ? undefined : selectedValue}
+        >
+          <ul className="max-h-60 overflow-y-auto">
+            {options.map((option) => {
+              const isSelected = multiSelect ? selectedValues.includes(option.value) : selectedValue === option.value;
+              return (
+                <li
+                  key={option.value}
+                  className={`px-3 py-2 text-sm font-medium rounded-md cursor-pointer transition-colors duration-150 ${
+                    isSelected ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                  onClick={() => handleSelect(option.value)}
+                  role="option"
+                  aria-selected={isSelected}
+                  id={option.value}
+                >
+                  {multiSelect ? (
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        readOnly
+                        checked={isSelected}
+                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-3"
+                      />
+                      <span>{option.label}</span>
+                    </div>
+                  ) : (
+                    <span>{option.label}</span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

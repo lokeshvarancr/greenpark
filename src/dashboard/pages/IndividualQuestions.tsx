@@ -12,6 +12,7 @@ import {
   CUMULATIVE_PAIRS as subjectPairOptions,
 } from "@/DummyData/IndividualQuestionsData";
 import { generateQuestionTableRows } from "@/DummyData/IndividualQuestionsData";
+import PageContainer from "@/components/layout/PageContainer";
 
 const grandTestOptions = [
   { label: "Grand Test 1", value: "GT1" },
@@ -138,8 +139,8 @@ const IndividualQuestions: React.FC = () => {
   const handleGrandTestName = (v: string) => setFilter(f => ({ ...f, grandTestName: v }));
 
   return (
-    <div className="min-h-0 flex flex-col mt-12">
-      <div className="w-full max-w-7xl mx-auto px-2 md:px-6 flex flex-col gap-4">
+    <PageContainer>
+      <div className="flex flex-col gap-4 w-full">
         {/* Top Bar Filters */}
         <IQFilterBar
           testType={filter.testType === "weekly" ? "Weekly" : filter.testType === "cumulative" ? "Cumulative" : "Grand Test"}
@@ -209,7 +210,7 @@ const IndividualQuestions: React.FC = () => {
           modalClassName="max-w-2xl w-full mx-auto my-8 max-h-[90vh] overflow-y-auto p-6 shadow-2xl rounded-2xl bg-white"
         />
       </div>
-    </div>
+    </PageContainer>
   );
 };
 
